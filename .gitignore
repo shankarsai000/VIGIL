@@ -45,5 +45,25 @@ backend/storage/audit_logs/
 *.db-shm
 *.db-wal
 
+# Model Weights
+*.pth
+*.pt
+*.pkl
+*.safetensors
+*.joblib
+*.h5
+*.hdf5
+*.ckpt
+*.checkpoint
+backend/models/
+backend/runtime/
+
+# Zip Files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
 # Docker
 docker-compose.override.yml
