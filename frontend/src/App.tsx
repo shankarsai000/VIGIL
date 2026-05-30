@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useVigilStore } from './store';
 import { vigilClient } from './api';
-import { Agent, Incident, AuditEntry, WSEventType } from './types';
+import { Agent, Incident, AuditEntry, WSEventType, IncidentState } from './types';
 
 // Import New Redesigned Modular Components
 import { CommandBar } from './components/CommandBar';
@@ -21,6 +21,7 @@ const App: React.FC = () => {
     updateAgent,
     addIncident,
     updateIncidentExplanation,
+    updateIncidentState,
     addAuditEntry,
     setAuditLog,
     setConnected,
@@ -63,6 +64,14 @@ const App: React.FC = () => {
         case WSEventType.TELEGRAM_STATUS:
           setTelegramStatus(event.payload as any);
           // Refetch approvals on status change
+          vigilClient.getTelegramApprovals().then(setPendingApprovals).catch(console.error);
+          break;
+        case WSEventType.GOVERNANCE_UPDATE:
+          const govPayload = event.payload as any;
+          if (govPayload.incident_id && govPayload.new_state) {
+            updateIncidentState(govPayload.incident_id, govPayload.new_state as IncidentState);
+          }
+          // Refetch approvals to update pending list
           vigilClient.getTelegramApprovals().then(setPendingApprovals).catch(console.error);
           break;
         case 'INIT' as any:
@@ -110,7 +119,7 @@ const App: React.FC = () => {
       cleanupEventBus();
       vigilClient.disconnect();
     };
-  }, [setAgents, updateAgent, addIncident, updateIncidentExplanation, addAuditEntry, setAuditLog, setConnected, setTelegramStatus, setPendingApprovals, setTelegramUsers]);
+  }, [setAgents, updateAgent, addIncident, updateIncidentExplanation, updateIncidentState, addAuditEntry, setAuditLog, setConnected, setTelegramStatus, setPendingApprovals, setTelegramUsers]);
 
   // Dynamically render viewport matching selected navigation tab
   const renderMainView = () => {

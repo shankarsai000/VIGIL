@@ -40,6 +40,18 @@ export enum PolicyDecision {
   ESCALATE = 'ESCALATE',
 }
 
+// Incident state enum
+export enum IncidentState {
+  NEW = 'NEW',
+  WATCHLIST = 'WATCHLIST',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  UNDER_INVESTIGATION = 'UNDER_INVESTIGATION',
+  QUARANTINED = 'QUARANTINED',
+  MONITORING = 'MONITORING',
+  RESOLVED = 'RESOLVED',
+  RECOVERED = 'RECOVERED',
+}
+
 // WebSocket event types
 export enum WSEventType {
   AGENT_UPDATE = 'AGENT_UPDATE',
@@ -55,6 +67,7 @@ export enum WSEventType {
   ATTACK_GRAPH_UPDATE = 'ATTACK_GRAPH_UPDATE',
   REMEDIATION_CHAIN_UPDATE = 'REMEDIATION_CHAIN_UPDATE',
   EVIDENCE_CHAIN_UPDATE = 'EVIDENCE_CHAIN_UPDATE',
+  GOVERNANCE_UPDATE = 'GOVERNANCE_UPDATE',
 }
 
 export interface TelegramStatus {
@@ -132,6 +145,7 @@ export interface Incident {
   explanation: string;
   timestamp: number;
   event: AgentEvent;
+  state: IncidentState;
 }
 
 export interface AuditEntry {

@@ -26,18 +26,16 @@ class CapabilityEnforcerService:
             allowed_destinations.update(agent.permitted_agents)
             
         # Also analyze historical events for learned behaviors
-        async with self.registry.db_connect() if hasattr(self.registry, 'db_connect') else self._db_conn() as db:
-            async with db.execute(
-                "SELECT event_type, target FROM events WHERE agent_id = ?",
-                (agent_id,),
-            ) as cursor:
-                rows = await cursor.fetchall()
-                for row in rows:
-                    ev_type, target = row[0], row[1]
-                    if ev_type == "TOOL_CALL":
-                        allowed_tools.add(target)
-                    elif ev_type == "AGENT_DELEGATION":
-                        allowed_destinations.add(target)
+        rows = await self.registry.db.fetch(
+            "SELECT event_type, target FROM events WHERE agent_id = ?",
+            (agent_id,),
+        )
+        for row in rows:
+            ev_type, target = row["event_type"], row["target"]
+            if ev_type == "TOOL_CALL":
+                allowed_tools.add(target)
+            elif ev_type == "AGENT_DELEGATION":
+                allowed_destinations.add(target)
                         
         profile = CapabilityProfile(
             agent_id=agent_id,
@@ -81,6 +79,3 @@ class CapabilityEnforcerService:
 
         return is_violation, violation
 
-    def _db_conn(self):
-        import aiosqlite
-        return aiosqlite.connect(self.registry.db_path)

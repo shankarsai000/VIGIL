@@ -1,29 +1,92 @@
-version: '3.8'
-
 services:
-  backend:
+  vigil-postgres:
+    image: postgres:16
+    container_name: vigil-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vigil_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vigil_secure_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-vigil_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  vigil-redis:
+    image: redis:7
+    container_name: vigil-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  vigil-backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
+    container_name: vigil-backend
     env_file:
       - .env
     environment:
-      - VIGIL_DB_PATH=backend/storage/vigil.db
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "8000:8000"
     volumes:
-      - vigil-db:/workspace/backend/storage/
-    restart: always
+      - ./backend:/workspace/backend
+      - replay_storage:/workspace/backend/storage/replay_logs
+      - telemetry_storage:/workspace/backend/storage/telemetry_logs
+    depends_on:
+      vigil-postgres:
+        condition: service_healthy
+      vigil-redis:
+        condition: service_healthy
+    command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-  frontend:
+  vigil-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: vigil-frontend
     ports:
-      - "5173:80"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
-      - backend
-    restart: always
+      vigil-backend:
+        condition: service_healthy
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5173 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
-  vigil-db:
+  postgres_data:
+  redis_data:
+  replay_storage:
+  telemetry_storage:

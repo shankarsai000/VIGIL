@@ -33,14 +33,11 @@ class BehavioralSpoofingService:
         """Analyzes historical telemetry for behavioral regularity to find adversarial mimicry/spoofing."""
         # Query recent events for agent
         events = []
-        async with self.registry.db_connect() if hasattr(self.registry, 'db_connect') else self._db_conn() as db:
-            db.row_factory = self._row_factory()
-            async with db.execute(
-                "SELECT event_type, target, payload, timestamp FROM events WHERE agent_id = ? ORDER BY timestamp DESC LIMIT 30",
-                (agent_id,),
-            ) as cursor:
-                rows = await cursor.fetchall()
-                events = [dict(row) for row in rows]
+        rows = await self.registry.db.fetch(
+            "SELECT event_type, target, payload, timestamp FROM events WHERE agent_id = ? ORDER BY timestamp DESC LIMIT 30",
+            (agent_id,),
+        )
+        events = [dict(row) for row in rows]
                 
         if len(events) < 5:
             # Not enough data, return a default low-risk score
@@ -137,10 +134,3 @@ class BehavioralSpoofingService:
             
         return score
 
-    def _db_conn(self):
-        import aiosqlite
-        return aiosqlite.connect(self.registry.db_path)
-
-    def _row_factory(self):
-        import aiosqlite
-        return aiosqlite.Row

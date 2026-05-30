@@ -18,7 +18,17 @@ class VigilSettings(BaseSettings):
     anthropic_api_key: str = Field(default="", description="Anthropic API key for Claude explainer")
     
     # Database
-    vigil_db_path: str = Field(default="vigil.db", description="Path to SQLite database")
+    database_url: str = Field(
+        default="postgresql://postgres:vigil_secure_password@postgres:5432/vigil_db",
+        description="PostgreSQL connection string",
+    )
+    vigil_db_path: str = Field(default="vigil.db", description="Path to SQLite database (legacy)")
+
+    # Redis
+    redis_host: str = Field(default="redis", description="Redis host")
+    redis_port: int = Field(default=6379, description="Redis port")
+    redis_db: int = Field(default=0, description="Redis database index")
+    redis_password: str = Field(default="", description="Redis password")
     
     # Logging
     vigil_log_level: str = Field(default="INFO", description="Logging level")
@@ -57,6 +67,7 @@ class VigilSettings(BaseSettings):
         "env_file": ".env",
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
+        "extra": "ignore",
     }
     
     @property

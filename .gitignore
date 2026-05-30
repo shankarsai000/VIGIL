@@ -39,6 +39,11 @@ Thumbs.db
 
 # Logs
 *.log
+backend/storage/replay_logs/
+backend/storage/audit_logs/
+*.db-journal
+*.db-shm
+*.db-wal
 
 # Docker
 docker-compose.override.yml

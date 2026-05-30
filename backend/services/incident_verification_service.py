@@ -44,10 +44,10 @@ class IncidentVerificationService:
         # Get all existing tamper proof records
         # In a real Merkle Tree, we build a tree from all leaf hashes
         # Let's simulate a simplified Merkle Proof chain where each block hashes: H_i = SHA256(H_{i-1} + CurrentSignature)
-        async with self.registry.db_connect() if hasattr(self.registry, 'db_connect') else self._db_conn() as db:
-            async with db.execute("SELECT signature FROM tamper_proof_incidents ORDER BY signed_at DESC LIMIT 5") as cursor:
-                rows = await cursor.fetchall()
-                history_signatures = [r[0] for r in rows]
+        rows = await self.registry.db.fetch(
+            "SELECT signature FROM tamper_proof_incidents ORDER BY signed_at DESC LIMIT 5"
+        )
+        history_signatures = [row["signature"] for row in rows]
                 
         # Simple Merkle proof is the list of historic signatures that hashed up to the root
         merkle_proof = json.dumps(history_signatures)
@@ -117,6 +117,3 @@ class IncidentVerificationService:
             
         return True, "Cryptographic signature matches. Merkle proof verified against block registry."
 
-    def _db_conn(self):
-        import aiosqlite
-        return aiosqlite.connect(self.registry.db_path)

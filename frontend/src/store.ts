@@ -32,6 +32,7 @@ export interface VigilState {
   updateAgent: (agent: Agent) => void;
   addIncident: (incident: Incident) => void;
   updateIncidentExplanation: (incidentId: string, explanation: string) => void;
+  updateIncidentState: (incidentId: string, state: Incident['state']) => void;
   addAuditEntry: (entry: AuditEntry) => void;
   setAuditLog: (entries: AuditEntry[]) => void;
   setConnected: (connected: boolean) => void;
@@ -51,7 +52,7 @@ export interface VigilState {
   setPendingApprovals: (approvals: ApprovalRequest[]) => void;
   setTelegramUsers: (users: TelegramUser[]) => void;
   addPendingApproval: (approval: ApprovalRequest) => void;
-  resolvePendingApproval: (requestId: string, status: 'APPROVED' | 'DENIED', resolvedBy: number) => void;
+  resolvePendingApproval: (requestId: string, status: 'APPROVED' | 'DENIED' | 'INVESTIGATING', resolvedBy: number) => void;
 }
 
 export const useVigilStore = create<VigilState>((set) => ({
@@ -103,6 +104,14 @@ export const useVigilStore = create<VigilState>((set) => ({
     set((state) => ({
       incidents: state.incidents.map((inc) =>
         inc.incident_id === incidentId ? { ...inc, explanation } : inc
+      ),
+      lastUpdate: Date.now(),
+    })),
+
+  updateIncidentState: (incidentId, state) =>
+    set((s) => ({
+      incidents: s.incidents.map((inc) =>
+        inc.incident_id === incidentId ? { ...inc, state } : inc
       ),
       lastUpdate: Date.now(),
     })),

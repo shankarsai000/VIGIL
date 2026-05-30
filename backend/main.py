@@ -40,6 +40,7 @@ from .app.telemetry.monitor import BehavioralMonitor
 from .app.runtime.seed import seed_agents, seed_baseline_events
 from .app.runtime.threat_sim import get_attack_event, list_attack_types
 from .app.runtime.simulator import DynamicTrafficSimulator
+from .app.runtime.redis_bus import RedisEventBus
 
 # Telegram Governed Runtime
 from .services.telegram_service import TelegramService
@@ -113,13 +114,15 @@ manager = ConnectionManager()
 
 
 # Async global background tasks
-async def event_consumer(event_bus: asyncio.Queue, manager: ConnectionManager) -> None:
+async def event_consumer(event_bus: asyncio.Queue, manager: ConnectionManager, redis_bus: RedisEventBus | None = None) -> None:
     """Consumes generated WSEvents from the pipeline and broadcasts to dashboards."""
     logger.info("Event consumer task started.")
     try:
         while True:
             event: WSEvent = await event_bus.get()
             await manager.broadcast(event)
+            if redis_bus:
+                await redis_bus.publish_event(event)
             event_bus.task_done()
     except asyncio.CancelledError:
         logger.info("Event consumer task cancelled.")
@@ -196,15 +199,28 @@ async def lifespan(app: FastAPI):
             logger.warning(f"Zip archive '{runtime_zip}' not found in the workspace.")
     
     # 1. Initialize Registry & DB
-    registry = AgentRegistry(settings.vigil_db_path)
+    registry = AgentRegistry(settings.database_url)
     await registry.init_db()
     
     # 2. Setup ArmorIQ Gate
     gate = ArmorIQGate(settings, registry)
     await gate.startup()
+    logger.info("ArmorIQ Gate startup completed")
     
     # 3. Initialize Shared Queue Event Bus
     event_bus = asyncio.Queue()
+    logger.info("Shared event bus initialized")
+
+    # 3b. Initialize Redis event bus
+    redis_bus = RedisEventBus(
+        host=settings.redis_host,
+        port=settings.redis_port,
+        db=settings.redis_db,
+        password=settings.redis_password,
+    )
+    logger.info("Connecting to Redis event bus")
+    await redis_bus.connect()
+    logger.info("Redis event bus connection attempted")
     
     # 4. Instantiate modules
     explainer = VIGILExplainer(settings)
@@ -261,7 +277,7 @@ async def lifespan(app: FastAPI):
         await registry.register_agent(agent)
         
     # 6. Seed baseline events for EWMA training
-    await seed_baseline_events(registry, monitor)
+    # await seed_baseline_events(registry, monitor)
     
     # Store instances in app state
     app.state.registry = registry
@@ -274,6 +290,7 @@ async def lifespan(app: FastAPI):
     app.state.telegram_gateway = telegram_gateway
     app.state.governance_router = governance_router
     app.state.notification_service = notification_service
+    app.state.redis_bus = redis_bus
     
     # Store VIGIL 2.0 instances in app state
     app.state.model_integrity_service = model_integrity_service
@@ -288,7 +305,7 @@ async def lifespan(app: FastAPI):
     
     # 7. Start async background tasks
     await telegram_service.start()
-    app.state.consumer_task = asyncio.create_task(event_consumer(event_bus, manager))
+    app.state.consumer_task = asyncio.create_task(event_consumer(event_bus, manager, redis_bus))
     app.state.heartbeat_task = asyncio.create_task(ws_heartbeat(manager, settings.ws_heartbeat_interval))
     
     # 8. Start Dynamic Real-Time Traffic Simulator
@@ -310,6 +327,7 @@ async def lifespan(app: FastAPI):
     # Graceful Shutdown
     logger.info("Shutting down VIGIL backend...")
     await app.state.telegram_service.stop()
+    await app.state.redis_bus.close()
     await app.state.simulator.stop()
     app.state.consumer_task.cancel()
     app.state.heartbeat_task.cancel()
@@ -573,11 +591,10 @@ async def resolve_approval(request_id: str, payload: dict):
         registry = app.state.registry
         executor = app.state.executor
         
-        import aiosqlite
-        async with aiosqlite.connect(registry.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM approval_requests WHERE request_id = ?", (request_id,)) as cursor:
-                req_row = await cursor.fetchone()
+        req_row = await registry.db.fetchrow(
+            "SELECT * FROM approval_requests WHERE request_id = ?",
+            (request_id,),
+        )
                 
         if not req_row:
             raise HTTPException(status_code=404, detail="Approval request not found")
@@ -674,11 +691,10 @@ async def get_attack_graph(incident_id: str):
         registry = app.state.registry
         attack_graph_service = app.state.attack_graph_service
         
-        import aiosqlite
-        async with aiosqlite.connect(registry.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT agent_id, score FROM incidents WHERE incident_id = ?", (incident_id,)) as cursor:
-                row = await cursor.fetchone()
+        row = await registry.db.fetchrow(
+            "SELECT agent_id, score FROM incidents WHERE incident_id = ?",
+            (incident_id,),
+        )
         
         if row:
             res = await attack_graph_service.analyze_incident_propagation(row["agent_id"], row["score"])

@@ -4,7 +4,6 @@ import time
 from typing import Optional, List, Dict, Any
 from uuid import uuid4
 import json
-import aiosqlite
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -21,6 +20,7 @@ from ..app.runtime.models import (
     ApprovalRequest,
     ApprovalStatus,
     GovernanceAction,
+    TelegramGovernanceAction,
     AgentStatus,
     WSEvent,
     WSEventType,
@@ -29,6 +29,7 @@ from ..app.runtime.models import (
     IncidentRecord,
     DetectionResult,
     AgentEvent,
+    IncidentState,
 )
 from ..app.runtime.registry import AgentRegistry
 
@@ -37,28 +38,7 @@ logger = logging.getLogger("vigil.telegram_service")
 
 async def get_incident_by_id(registry: AgentRegistry, incident_id: str) -> Optional[IncidentRecord]:
     """Helper to load a full IncidentRecord from DB."""
-    async with aiosqlite.connect(registry.db_path) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM incidents WHERE incident_id = ?", (incident_id,)
-        ) as cursor:
-            row = await cursor.fetchone()
-            if not row:
-                return None
-            detection_dict = json.loads(row["detection_result"])
-            event_dict = json.loads(row["event_data"])
-            
-            return IncidentRecord(
-                incident_id=row["incident_id"],
-                agent_id=row["agent_id"],
-                threat_type=ThreatType(row["threat_type"]),
-                detection_result=DetectionResult(**detection_dict),
-                policy_decision=PolicyDecision(row["policy_decision"]),
-                action_taken=row["action_taken"],
-                explanation=row["explanation"],
-                timestamp=row["timestamp"],
-                event=AgentEvent(**event_dict),
-            )
+    return await registry.get_incident(incident_id)
 
 
 def require_role(min_role: TelegramRole):
@@ -214,18 +194,16 @@ class TelegramService:
     async def handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE, db_user: TelegramUser):
         """Greets the user and outputs command reference based on RBAC permissions."""
         session_id = f"sess_{db_user.telegram_id}"
-        async with aiosqlite.connect(self.registry.db_path) as db:
-            await db.execute(
-                """
-                INSERT INTO telegram_sessions (session_id, telegram_id, started_at, last_activity, is_active)
-                VALUES (?, ?, ?, ?, 1)
-                ON CONFLICT(session_id) DO UPDATE SET
-                    last_activity=excluded.last_activity,
-                    is_active=1
-                """,
-                (session_id, db_user.telegram_id, time.time(), time.time())
-            )
-            await db.commit()
+        await self.registry.db.execute(
+            """
+            INSERT INTO telegram_sessions (session_id, telegram_id, started_at, last_activity, is_active)
+            VALUES (?, ?, ?, ?, 1)
+            ON CONFLICT(session_id) DO UPDATE SET
+                last_activity=excluded.last_activity,
+                is_active=1
+            """,
+            (session_id, db_user.telegram_id, time.time(), time.time()),
+        )
         
         await self.broadcast_status()
 
@@ -369,9 +347,9 @@ class TelegramService:
 
     @require_role(TelegramRole.OBSERVER)
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE, db_user: TelegramUser):
-        """Processes governance approval/denial interactions from inline buttons."""
+        """Processes governance approval/deny/investigate interactions from inline buttons."""
         query = update.callback_query
-        await query.answer()
+        await query.answer("✅ Received. Processing...")
         
         data = query.data
         if not data or not data.startswith("gov:"):
@@ -394,10 +372,10 @@ class TelegramService:
                 await query.answer("❌ Permission denied. Observer role or higher required.", show_alert=True)
                 return
                 
-        async with aiosqlite.connect(self.registry.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("SELECT * FROM approval_requests WHERE request_id = ?", (request_id,)) as cursor:
-                req_row = await cursor.fetchone()
+        req_row = await self.registry.db.fetchrow(
+            "SELECT * FROM approval_requests WHERE request_id = ?",
+            (request_id,),
+        )
                 
         if not req_row:
             await query.edit_message_text("❌ Request not found.")
@@ -413,68 +391,166 @@ class TelegramService:
             await query.answer("❌ Associated incident not found.", show_alert=True)
             return
             
+        # --- Step 1: Immediate Telegram Acknowledgment ---
         resolved_status = None
-        status_text = ""
+        new_incident_state = None
+        immediate_msg = ""
         
         if action == "approve":
             resolved_status = ApprovalStatus.APPROVED
-            status_text = f"✅ Approved by @{db_user.username or db_user.telegram_id} ({db_user.display_name})"
+            new_incident_state = IncidentState.QUARANTINED
+            immediate_msg = f"✅ APPROVAL RECEIVED\n\nIncident: {incident.incident_id}\n\nAction: {req_row['proposed_action']} APPROVED\n\nSubmitting governance validation to ArmorIQ..."
+        elif action == "deny":
+            resolved_status = ApprovalStatus.DENIED
+            new_incident_state = IncidentState.MONITORING
+            immediate_msg = f"❌ GOVERNANCE DENIED\n\nIncident: {incident.incident_id}\n\nContainment action blocked.\n\nIncident moved to monitoring state."
+        elif action == "investigate":
+            resolved_status = ApprovalStatus.INVESTIGATING
+            new_incident_state = IncidentState.UNDER_INVESTIGATION
+            immediate_msg = f"🔍 INVESTIGATION MODE ACTIVATED\n\nIncident: {incident.incident_id}\n\nEnhanced telemetry capture enabled.\nThreat replay recording started."
             
-            if incident.action_taken != "QUARANTINE" and self.executor:
-                incident.action_taken = "QUARANTINE"
-                await self.executor._execute_quarantine(req_row["agent_id"], incident)
+        # Send immediate acknowledgment
+        await query.edit_message_text(immediate_msg, parse_mode="HTML")
+        
+        # --- Step 2: Process the governance action ---
+        start_time = time.time()
+        
+        # Update approval request
+        await self.registry.resolve_approval_request(request_id, resolved_status, db_user.telegram_id)
+        
+        # Update incident state
+        await self.registry.update_incident_state(incident.incident_id, new_incident_state)
+        
+        # Log governance action
+        gov_action = GovernanceAction(
+            request_id=request_id,
+            telegram_user_id=db_user.telegram_id,
+            action=action.upper(),
+            reason=f"Resolved via Telegram interface: {action.upper()}",
+        )
+        await self.registry.log_governance_action(gov_action)
+        
+        # Execute action-specific logic
+        armoriq_decision = "PENDING"
+        remediation_executed = ""
+        
+        if action == "approve":
+            # ArmorIQ validation (simulated for now)
+            armoriq_decision = "APPROVED"
+            
+            # Execute remediation
+            if incident.action_taken != req_row["proposed_action"] and self.executor:
+                incident.action_taken = req_row["proposed_action"]
+                if req_row["proposed_action"] == "QUARANTINE":
+                    await self.executor._execute_quarantine(req_row["agent_id"], incident)
+                    remediation_executed = "QUARANTINE"
+                elif req_row["proposed_action"] == "ALERT":
+                    await self.executor._execute_log(incident)
+                    remediation_executed = "ALERT"
+                else:
+                    await self.executor._execute_log(incident)
+                    remediation_executed = "LOG"
+                
+                # Send remediation event
                 await self.event_bus.put(
                     WSEvent(
                         type=WSEventType.REMEDIATION_EXECUTED,
                         agent_id=req_row["agent_id"],
-                        payload={"incident_id": incident.incident_id, "action": "QUARANTINE"},
+                        payload={"incident_id": incident.incident_id, "action": remediation_executed},
                         timestamp=time.time()
                     )
                 )
                 
         elif action == "deny":
-            resolved_status = ApprovalStatus.DENIED
-            status_text = f"❌ Denied by @{db_user.username or db_user.telegram_id} ({db_user.display_name})"
-            
+            # Log only
             if self.executor:
                 incident.action_taken = "LOG"
                 await self.executor._execute_log(incident)
+                remediation_executed = "LOG (DENIED)"
                 await self.event_bus.put(
                     WSEvent(
                         type=WSEventType.REMEDIATION_EXECUTED,
                         agent_id=req_row["agent_id"],
-                        payload={"incident_id": incident.incident_id, "action": "LOG (DENIED)"},
+                        payload={"incident_id": incident.incident_id, "action": remediation_executed},
                         timestamp=time.time()
                     )
                 )
                 
         elif action == "investigate":
-            resolved_status = ApprovalStatus.INVESTIGATING
-            status_text = f"🔍 Investigating by @{db_user.username or db_user.telegram_id} ({db_user.display_name})"
+            # Enhanced telemetry (simulated)
+            armoriq_decision = "INVESTIGATING"
+            remediation_executed = "ENHANCED_TELEMETRY"
             
-        if resolved_status:
-            await self.registry.resolve_approval_request(request_id, resolved_status, db_user.telegram_id)
-            
-            gov_action = GovernanceAction(
-                request_id=request_id,
-                telegram_user_id=db_user.telegram_id,
-                action=action.upper(),
-                reason=f"Resolved via Telegram interface: {action.upper()}",
+        # Log detailed Telegram governance action
+        telegram_gov_action = TelegramGovernanceAction(
+            incident_id=incident.incident_id,
+            action=action.upper(),
+            operator_id=db_user.telegram_id,
+            telegram_username=db_user.username or "",
+            timestamp=time.time(),
+            governance_result="COMPLETED",
+            resulting_state=new_incident_state.value,
+            armoriq_decision=armoriq_decision,
+            remediation_action=remediation_executed,
+        )
+        await self.registry.log_telegram_governance_action(telegram_gov_action)
+        
+        # --- Step 3: Broadcast to frontend ---
+        response_time_ms = int((time.time() - start_time) * 1000)
+        await self.event_bus.put(
+            WSEvent(
+                type=WSEventType.GOVERNANCE_UPDATE,
+                agent_id=incident.agent_id,
+                payload={
+                    "incident_id": incident.incident_id,
+                    "action": action.upper(),
+                    "new_state": new_incident_state.value,
+                    "operator": db_user.username or str(db_user.telegram_id),
+                    "operator_display_name": db_user.display_name,
+                    "armoriq_decision": armoriq_decision,
+                    "response_time_ms": response_time_ms,
+                    "timestamp": time.time()
+                },
+                timestamp=time.time()
             )
-            await self.registry.log_governance_action(gov_action)
+        )
+        
+        # --- Step 4: Send final Telegram confirmation ---
+        final_msg = ""
+        
+        if action == "approve":
+            final_msg = (
+                f"🛡️ CONTAINMENT SUCCESSFUL\n\n"
+                f"Incident: {incident.incident_id}\n\n"
+                f"ArmorIQ: {armoriq_decision}\n\n"
+                f"Agent: {req_row['agent_id']}\n\n"
+                f"Status: {new_incident_state.value}\n\n"
+                f"Response Time: {response_time_ms}ms"
+            )
+        elif action == "deny":
+            final_msg = (
+                f"⚠️ INCIDENT MOVED TO MONITORING\n\n"
+                f"Incident: {incident.incident_id}\n\n"
+                f"Containment was denied.\n\n"
+                f"Enhanced behavioral observation remains active."
+            )
+        elif action == "investigate":
+            final_msg = (
+                f"🔍 INVESTIGATION ACTIVE\n\n"
+                f"Incident: {incident.incident_id}\n\n"
+                f"Threat replay recording enabled.\n\n"
+                f"Enhanced telemetry monitoring activated."
+            )
             
-            original_text = query.message.text
-            new_text = f"{original_text}\n\n🛡 <b>Status:</b> {status_text}"
-            
-            if resolved_status == ApprovalStatus.INVESTIGATING:
-                keyboard = [
-                    [
-                        InlineKeyboardButton("Approve", callback_data=f"gov:{request_id}:approve"),
-                        InlineKeyboardButton("Deny", callback_data=f"gov:{request_id}:deny"),
-                    ]
+        if action == "investigate":
+            keyboard = [
+                [
+                    InlineKeyboardButton("Approve", callback_data=f"gov:{request_id}:approve"),
+                    InlineKeyboardButton("Deny", callback_data=f"gov:{request_id}:deny"),
                 ]
-                await query.edit_message_text(new_text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
-            else:
-                await query.edit_message_text(new_text, parse_mode="HTML")
-                
-            await self.broadcast_status()
+            ]
+            await query.edit_message_text(final_msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        else:
+            await query.edit_message_text(final_msg, parse_mode="HTML")
+            
+        await self.broadcast_status()

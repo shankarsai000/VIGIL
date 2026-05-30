@@ -82,6 +82,7 @@ class WSEventType(str, Enum):
     ATTACK_GRAPH_UPDATE = "ATTACK_GRAPH_UPDATE"
     REMEDIATION_CHAIN_UPDATE = "REMEDIATION_CHAIN_UPDATE"
     EVIDENCE_CHAIN_UPDATE = "EVIDENCE_CHAIN_UPDATE"
+    GOVERNANCE_UPDATE = "GOVERNANCE_UPDATE"
 
 
 class AgentProfile(BaseModel):
@@ -133,6 +134,18 @@ class RemediationResult(BaseModel):
     incident_id: str = Field(description="Reference ID of the registered incident")
 
 
+class IncidentState(str, Enum):
+    """State of an incident in the governance workflow."""
+    NEW = "NEW"
+    WATCHLIST = "WATCHLIST"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    UNDER_INVESTIGATION = "UNDER_INVESTIGATION"
+    QUARANTINED = "QUARANTINED"
+    MONITORING = "MONITORING"
+    RESOLVED = "RESOLVED"
+    RECOVERED = "RECOVERED"
+
+
 class IncidentRecord(BaseModel):
     incident_id: str = Field(default_factory=lambda: str(uuid4()), description="Unique UUID for this incident")
     agent_id: str = Field(description="Identifier of the agent involved in the incident")
@@ -143,6 +156,7 @@ class IncidentRecord(BaseModel):
     explanation: str = Field(default="", description="Plain English description of the incident")
     timestamp: float = Field(default_factory=time.time, description="Unix timestamp of incident registration")
     event: AgentEvent = Field(description="Triggering agent event details")
+    state: IncidentState = Field(default=IncidentState.NEW, description="Current state of the incident in governance workflow")
 
 
 class AuditEntry(BaseModel):
@@ -197,6 +211,8 @@ class TelegramRole(str, Enum):
         return TelegramRole.hierarchy_level(self) >= TelegramRole.hierarchy_level(required_role)
 
 
+
+
 class ApprovalStatus(str, Enum):
     """Status of a governance approval request."""
     PENDING = "PENDING"
@@ -231,6 +247,20 @@ class ApprovalRequest(BaseModel):
     resolved_by: Optional[int] = Field(default=None, description="Telegram user ID who resolved")
     telegram_message_id: Optional[int] = Field(default=None, description="Telegram message ID of the approval card")
     chat_id: Optional[int] = Field(default=None, description="Telegram chat ID where approval was sent")
+
+
+class TelegramGovernanceAction(BaseModel):
+    """Detailed record of a Telegram governance action with full state tracking."""
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique governance action ID")
+    incident_id: str = Field(description="Associated incident ID")
+    action: str = Field(description="Action taken: APPROVE, DENY, INVESTIGATE")
+    operator_id: int = Field(description="Telegram user ID of the operator")
+    telegram_username: str = Field(default="", description="Telegram username of the operator")
+    timestamp: float = Field(default_factory=time.time, description="When the action was taken")
+    governance_result: str = Field(default="", description="Result of governance validation")
+    resulting_state: str = Field(default="", description="Resulting incident state after action")
+    armoriq_decision: str = Field(default="", description="ArmorIQ's validation decision")
+    remediation_action: str = Field(default="", description="Remediation action executed (if any)")
 
 
 class GovernanceAction(BaseModel):
