@@ -1,0 +1,43 @@
+{
+    "incident_id": "ab5cb524-0695-44a4-bdcc-8afb9582a34a",
+    "agent_id": "sales_agent",
+    "threat_type": "CAPABILITY_VIOLATION",
+    "timestamp": 1780119480.068511,
+    "steps": [
+        {
+            "step": 0,
+            "label": "INJECTION",
+            "title": "Anomalous Payload Input",
+            "description": "External agent called endpoint using a payload with length 35 bytes.",
+            "raw_trace": "lead_id=all status=converted --bulk"
+        },
+        {
+            "step": 1,
+            "label": "DETECTION",
+            "title": "Multi-Engine Threat Scan",
+            "description": "Rule match verified CAPABILITY_VIOLATION. Aggregating scores.",
+            "raw_trace": "{\n  \"score\": 0.9,\n  \"threat_type\": \"CAPABILITY_VIOLATION\",\n  \"confidence\": \"CRITICAL\",\n  \"rule_score\": 0.9,\n  \"ewma_score\": 0.0,\n  \"iforest_score\": 0.35499716925352265,\n  \"details\": {\n    \"window_stats\": {\n      \"call_rate\": 4.0,\n      \"avg_payload_size\": 93.79310344827586,\n      \"delegation_count\": 11,\n      \"tool_diversity\": 4.0\n    },\n    \"sklearn_loaded\": true,\n    \"active_samples\": 29,\n    \"armorclaw_label\": \"BENIGN_OPERATION\",\n    \"armorclaw_score\": 0.05,\n    \"telemetry_ml_score\": 0.35499716925352265,\n    \"prompt_mutation_score\": 0.0,\n    \"capability_score\": 1.0,\n    \"spoofing_score\": 0.0\n  }\n}"
+        },
+        {
+            "step": 2,
+            "label": "VERIFICATION",
+            "title": "ArmorIQ Compliance Verdict",
+            "description": "Rule parsed policy limits. Policy action matched: APPROVED.",
+            "raw_trace": "Policy decision: APPROVED\nRemediation verdict: ACTIVATE ISOLATION"
+        },
+        {
+            "step": 3,
+            "label": "CONTAINMENT",
+            "title": "Remediation Executed",
+            "description": "VIGIL isolation dome triggered. Action took: AWAITING_APPROVAL.",
+            "raw_trace": "Containment Action: AWAITING_APPROVAL\nAgent isolation index: OPTIMAL"
+        },
+        {
+            "step": 4,
+            "label": "EXPLANATION",
+            "title": "Forensic Sandbox Report",
+            "description": "Explainer report generated to explain context anomalies.",
+            "raw_trace": "A behavioral threat was initiated through the Sales Agent agent pipeline targeting the 'modify_crm' resource. VIGIL's hybrid behavioral monitors flagged the activity with a threat score of 90%, and ArmorIQ approved the containment response. The threat event details were audited and logged to SQLite in 97ms, preserving pipeline history."
+        }
+    ]
+}

@@ -1,0 +1,34 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# VIGIL Backend Dependencies
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+
+# Data validation & settings
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+
+# Async database
+aiosqlite>=0.20.0
+
+# HTTP client
+httpx>=0.27.0
+
+# ML - Isolation Forest
+scikit-learn>=1.5.0
+numpy>=1.26.0
+
+# AI - Anthropic Claude
+anthropic>=0.28.0
+
+# WebSocket support (included with uvicorn[standard])
+websockets>=12.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Telegram Governed Runtime
+python-telegram-bot>=21.0
+

@@ -1,0 +1,43 @@
+{
+    "incident_id": "eddf8ef6-55a5-4bd7-b758-2f539caffe39",
+    "agent_id": "analytics_agent",
+    "threat_type": "PRIVILEGE_ESCALATION",
+    "timestamp": 1780081872.492567,
+    "steps": [
+        {
+            "step": 0,
+            "label": "INJECTION",
+            "title": "Anomalous Payload Input",
+            "description": "External agent called endpoint using a payload with length 54 bytes.",
+            "raw_trace": "bulk_export_all_records_including_passwords_and_tokens"
+        },
+        {
+            "step": 1,
+            "label": "DETECTION",
+            "title": "Multi-Engine Threat Scan",
+            "description": "Rule match verified PRIVILEGE_ESCALATION. Aggregating scores.",
+            "raw_trace": "{\n  \"score\": 0.9,\n  \"threat_type\": \"PRIVILEGE_ESCALATION\",\n  \"confidence\": \"CRITICAL\",\n  \"rule_score\": 0.9,\n  \"ewma_score\": 0.0,\n  \"iforest_score\": 1.0,\n  \"details\": {\n    \"window_stats\": {\n      \"call_rate\": 6.0,\n      \"avg_payload_size\": 65837.52631578948,\n      \"delegation_count\": 0,\n      \"tool_diversity\": 3.0\n    },\n    \"sklearn_loaded\": true,\n    \"active_samples\": 304,\n    \"armorclaw_label\": \"BENIGN_OPERATION\",\n    \"armorclaw_score\": 0.05,\n    \"telemetry_ml_score\": 0.36737636770077176\n  }\n}"
+        },
+        {
+            "step": 2,
+            "label": "VERIFICATION",
+            "title": "ArmorIQ Compliance Verdict",
+            "description": "Rule parsed policy limits. Policy action matched: APPROVED.",
+            "raw_trace": "Policy decision: APPROVED\nRemediation verdict: ACTIVATE ISOLATION"
+        },
+        {
+            "step": 3,
+            "label": "CONTAINMENT",
+            "title": "Remediation Executed",
+            "description": "VIGIL isolation dome triggered. Action took: QUARANTINE.",
+            "raw_trace": "Containment Action: QUARANTINE\nAgent isolation index: OPTIMAL"
+        },
+        {
+            "step": 4,
+            "label": "EXPLANATION",
+            "title": "Forensic Sandbox Report",
+            "description": "Explainer report generated to explain context anomalies.",
+            "raw_trace": "The Analytics Agent agent attempted to execute an unauthorized database operation and call the 'user_records' tool. VIGIL's hybrid behavioral monitors flagged the activity with a threat score of 90%, and ArmorIQ approved the containment response. The agent was quarantined in 84ms, securing downstream databases and blocking further instructions."
+        }
+    ]
+}

@@ -1,0 +1,43 @@
+{
+    "incident_id": "83f2a742-791b-45bc-93e2-2954e192f1a8",
+    "agent_id": "customer_bot",
+    "threat_type": "UNAUTHORIZED_DELEGATION",
+    "timestamp": 1780082971.6154053,
+    "steps": [
+        {
+            "step": 0,
+            "label": "INJECTION",
+            "title": "Anomalous Payload Input",
+            "description": "External agent called endpoint using a payload with length 50 bytes.",
+            "raw_trace": "process_bulk_refund_all_customers --force-override"
+        },
+        {
+            "step": 1,
+            "label": "DETECTION",
+            "title": "Multi-Engine Threat Scan",
+            "description": "Rule match verified UNAUTHORIZED_DELEGATION. Aggregating scores.",
+            "raw_trace": "{\n  \"score\": 0.95,\n  \"threat_type\": \"UNAUTHORIZED_DELEGATION\",\n  \"confidence\": \"CRITICAL\",\n  \"rule_score\": 0.95,\n  \"ewma_score\": 0.0,\n  \"iforest_score\": 0.3557242797991968,\n  \"details\": {\n    \"window_stats\": {\n      \"call_rate\": 14.0,\n      \"avg_payload_size\": 351.7857142857143,\n      \"delegation_count\": 2,\n      \"tool_diversity\": 4.0\n    },\n    \"sklearn_loaded\": true,\n    \"active_samples\": 14,\n    \"armorclaw_label\": \"BENIGN_OPERATION\",\n    \"armorclaw_score\": 0.05,\n    \"telemetry_ml_score\": 0.3557242797991968\n  }\n}"
+        },
+        {
+            "step": 2,
+            "label": "VERIFICATION",
+            "title": "ArmorIQ Compliance Verdict",
+            "description": "Rule parsed policy limits. Policy action matched: APPROVED.",
+            "raw_trace": "Policy decision: APPROVED\nRemediation verdict: ACTIVATE ISOLATION"
+        },
+        {
+            "step": 3,
+            "label": "CONTAINMENT",
+            "title": "Remediation Executed",
+            "description": "VIGIL isolation dome triggered. Action took: AWAITING_APPROVAL.",
+            "raw_trace": "Containment Action: AWAITING_APPROVAL\nAgent isolation index: OPTIMAL"
+        },
+        {
+            "step": 4,
+            "label": "EXPLANATION",
+            "title": "Forensic Sandbox Report",
+            "description": "Explainer report generated to explain context anomalies.",
+            "raw_trace": "The Customer Bot agent attempted to bypass delegation rules by calling the restricted agent 'billing_agent'. VIGIL's hybrid behavioral monitors flagged the activity with a threat score of 95%, and ArmorIQ approved the containment response. The threat event details were audited and logged to SQLite in 49ms, preserving pipeline history."
+        }
+    ]
+}
