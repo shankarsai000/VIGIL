@@ -1,10 +1,19 @@
 # 🛡️ VIGIL — Real-Time Behavioral Immune System for AI Agent Pipelines
 > Visual Intelligence & Governance for Intelligent Layers  
-> **Team CS · GM University · ArmorIQ Track 2 · HackBriven May 30 2026**
+> **Team CS · GM University · ArmorIQ Track 2 · HackBriven**
+
+🔗 **GitHub Repository**: [https://github.com/shankarsai000/VIGIL](https://github.com/shankarsai000/VIGIL)
 
 VIGIL is an advanced, real-time security monitoring and containment system designed for distributed AI agent pipelines. It protects active agent pipelines from behavioral threats, privilege escalations, unauthorized agent-to-agent delegations, and massive exfiltration vectors. 
 
 Every single security threat is gated through the **ArmorIQ Policy Engine** for authorization before containment is executed, audited in immutable logs, and dynamically translated into plain English narrative by a dedicated **Claude AI incident explainer**.
+
+### 📦 What's Included
+- **Backend Services**: Python FastAPI server with async WebSocket support for real-time telemetry
+- **Frontend Dashboard**: React 18 + TypeScript + Tailwind CSS with real-time state management
+- **Detection Engine**: 3-layer hybrid anomaly detection (Heuristics, EWMA Baselines, Isolation Forest)
+- **Policy Gateway**: ArmorIQ integration for threat authorization and audit trails
+- **Containerized Deployment**: Docker & Docker Compose for seamless multi-container orchestration
 
 ---
 
@@ -68,51 +77,53 @@ Every single security threat is gated through the **ArmorIQ Policy Engine** for 
 
 ---
 
-## 🚀 Setup Instructions (5 Steps)
+## 🚀 Quick Setup (Docker - Recommended)
 
-Follow these simple steps to spin up VIGIL locally on your workstation:
+The fastest way to get VIGIL running is using Docker Compose:
 
-### 1. Clone & Navigate
-Ensure you are in the project root directory:
+### Prerequisites
+- **Docker** and **Docker Compose** installed on your system
+- **Git** for cloning the repository
+
+### Steps
+
+1. **Clone the repository**:
 ```bash
+git clone https://github.com/shankarsai000/VIGIL.git
 cd VIGIL
 ```
 
-### 2. Configure Environment Variables
-Copy `.env.example` to create your local `.env` configuration file:
+2. **Configure Environment** (optional):
 ```bash
 cp .env.example .env
 ```
-*Note: By default, `ARMORIQ_API_KEY=mock` is configured. This enables local mock verification policies so the dashboard runs perfectly out of the box without active remote API keys.*
+*Note: The project comes with `ARMORIQ_API_KEY=mock` by default for local testing without external API credentials.*
 
-### 3. Spin Up Docker Containers
-Build and boot both backend and frontend applications concurrently using docker-compose:
+3. **Spin Up the Application**:
 ```bash
 docker-compose up --build -d
 ```
 
-### 4. Verify Services Status
-Check container status:
+4. **Verify Services**:
 ```bash
 docker-compose ps
 ```
-* Backend will be running at [http://localhost:8000](http://localhost:8000)
-* Frontend Dashboard will be accessible at [http://localhost:5173](http://localhost:5173)
 
-### 5. Launch the Dashboard
-Open your web browser and navigate to:
+5. **Access the Dashboard**:
 👉 **[http://localhost:5173](http://localhost:5173)**
+- Backend API: [http://localhost:8000](http://localhost:8000)
+- API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 🧪 Judge Live Demo Guide
+## 🧪 Live Demo Scenarios
 
-To demonstrate VIGIL's capabilities to hackathon judges, follow this exact step-by-step click sequence:
+The VIGIL dashboard includes interactive demonstrations of real-time threat detection and response:
 
-### 🎬 Setup Verification
-1. Open the VIGIL Dashboard.
-2. Confirm the top-right indicator shows **● CONNECTED** (indicating active WebSocket telemetry stream).
-3. Observe the **Active AI Agents** column showing **CustomerBot**, **AnalyticsAgent**, and **BillingAgent** operating securely in `NORMAL` status with 20 seeded historical telemetry events (warming up the EWMA baselines).
+### 🎬 Dashboard Overview
+1. Open the VIGIL Dashboard at [http://localhost:5173](http://localhost:5173)
+2. Confirm the top-right indicator shows **● CONNECTED** (WebSocket telemetry stream active)
+3. View **Active AI Agents**: CustomerBot, AnalyticsAgent, and BillingAgent in NORMAL status with 20 seeded telemetry events
 
 ---
 
@@ -158,59 +169,95 @@ To demonstrate VIGIL's capabilities to hackathon judges, follow this exact step-
 
 ---
 
-## 🚀 How to Run the Project (Local Development)
+## 🚀 Local Development Setup
 
-Follow these steps to spin up the entire VIGIL Autonomous Security Governance pipeline on your Windows system:
+For local development without Docker, follow these instructions:
 
-### 1. Backend Server Setup
+### Prerequisites
+- **Python 3.11+** with venv support
+- **Node.js 18+** with npm
+- **Git**
 
-The backend serves the 3-layer hybrid detection engine, WebSocket telemetry streams, and ArmorIQ mock gateways.
+### Backend Server
 
-#### Activate Python Virtual Environment (`venv`):
-Open your terminal (Command Prompt or PowerShell) in the root of the project directory and run:
+1. **Activate Virtual Environment**:
 ```powershell
-# In PowerShell:
+# PowerShell
 .\venv\Scripts\Activate.ps1
 
-# In Command Prompt:
+# Command Prompt
 .\venv\Scripts\activate.bat
+
+# Linux/macOS
+source venv/bin/activate
 ```
 
-#### Run the Uvicorn Server:
-Once the virtual environment is active, run the Uvicorn development server:
+2. **Install Dependencies** (if not already installed):
 ```bash
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+pip install -r backend/requirements.txt
 ```
-* **URL**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-* **API Documentation**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
----
+3. **Run the Backend Server**:
+```bash
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+- **Backend API**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **API Documentation**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
-### 2. Frontend Observability Console Setup
+### Frontend Dashboard
 
-The frontend is a next-generation Vite + React + Tailwind dashboard.
-
-#### Navigate to the Frontend Directory:
-Open a separate terminal window and navigate to the frontend folder:
+1. **Navigate to Frontend Directory**:
 ```bash
 cd frontend
 ```
 
-#### Install Node Dependencies (if running for the first time):
+2. **Install Dependencies**:
 ```bash
 npm install
 ```
 
-#### Run the Frontend Development Server:
+3. **Start Development Server**:
 ```bash
 npm run dev
 ```
-* **Local Web Interface**: [http://localhost:5173](http://localhost:5173)
+- **Dashboard**: [http://localhost:5173](http://localhost:5173)
 
 ---
 
-### 🌐 System URLs Summary
-* **Frontend Console**: [http://localhost:5173](http://localhost:5173)
-* **Backend API Host**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-* **Interactive OpenAPI Specs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+## 📚 API & Component Structure
+
+- **Backend**: `/backend/` - FastAPI server with detection engine, WebSocket hub, and ArmorIQ gateway
+- **Frontend**: `/frontend/` - React + TypeScript with real-time state management
+- **Services**: `/backend/services/` - Modular threat detection, remediation, and incident management services
+- **Models**: `/backend/models/` - Pre-trained ARMORCLAW detection model
+- **Storage**: `/backend/storage/` - Audit logs, replay logs, and telemetry storage
+
+---
+
+## 🤝 Contributing
+
+VIGIL is an open-source project. To contribute:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -am 'Add feature'`
+4. Push to branch: `git push origin feature/your-feature`
+5. Submit a pull request
+
+---
+
+## 📝 License
+
+This project is part of the ArmorIQ Track 2 at HackBriven. See LICENSE for details.
+
+---
+
+## 🌐 URLs Summary
+
+| Component | URL |
+| :--- | :--- |
+| **Frontend Dashboard** | [http://localhost:5173](http://localhost:5173) |
+| **Backend API** | [http://127.0.0.1:8000](http://127.0.0.1:8000) |
+| **API Documentation** | [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) |
+| **GitHub Repository** | [https://github.com/shankarsai000/VIGIL](https://github.com/shankarsai000/VIGIL) |
 
