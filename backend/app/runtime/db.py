@@ -79,8 +79,11 @@ class SQLiteDatabase:
 
     async def connect(self) -> None:
         if self.conn is None:
-            self.conn = await aiosqlite.connect(self.db_path)
+            self.conn = await aiosqlite.connect(self.db_path, timeout=30.0)
             self.conn.row_factory = aiosqlite.Row
+            await self.conn.execute("PRAGMA journal_mode=WAL")
+            await self.conn.execute("PRAGMA busy_timeout=30000")
+            await self.conn.commit()
 
     async def close(self) -> None:
         if self.conn is not None:
@@ -109,10 +112,15 @@ class SQLiteDatabase:
             return await cursor.fetchone()
 
     async def execute_many(self, statements: Iterable[str]) -> None:
+        import logging
+        logger = logging.getLogger("vigil.db")
         async with self.acquire() as conn:
-            for statement in statements:
+            for idx, statement in enumerate(statements):
+                logger.info(f"Executing statement {idx+1}")
                 await conn.execute(statement)
+                logger.info(f"Completed statement {idx+1}")
             await conn.commit()
+            logger.info("All statements committed successfully")
 
 
 def create_database(database_url: str):

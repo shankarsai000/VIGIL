@@ -128,6 +128,22 @@ class TelegramService:
             await self.application.initialize()
             await self.application.start()
             
+            # Auto-register admin users from settings
+            for admin_id in self.settings.telegram_admin_id_list:
+                existing_user = await self.registry.get_telegram_user(admin_id)
+                if not existing_user:
+                    admin_user = TelegramUser(
+                        telegram_id=admin_id,
+                        username="",
+                        display_name=f"Admin {admin_id}",
+                        role=TelegramRole.ADMIN,
+                        is_active=True,
+                    )
+                    await self.registry.register_telegram_user(admin_user)
+                    logger.info(f"Auto-registered admin user with ID {admin_id}")
+                else:
+                    logger.info(f"Admin user with ID {admin_id} already registered")
+            
             logger.info("Starting Telegram Updater polling...")
             await self.application.updater.start_polling()
             
