@@ -57,8 +57,6 @@ export const CommandBar: React.FC = () => {
     (a) => a.status === 'QUARANTINED'
   ).length;
 
-  const totalThreats = incidents.length;
-
   return (
     <header className="h-[56px] border-b border-vigil-border/40 glass-panel flex items-center justify-between px-6 select-none z-50 relative shrink-0">
       {/* Brand logo & status */}
@@ -134,16 +132,18 @@ export const CommandBar: React.FC = () => {
       <div className="flex items-center space-x-6">
         {/* Statistics highlights */}
         <div className="hidden lg:flex items-center space-x-4 font-mono text-[11px]">
-          <div className="flex flex-col items-end">
-            <span className="text-vigil-muted text-[9px] uppercase">CONTAINMENT</span>
+          <div className="flex flex-col items-end" title="Number of agents currently in QUARANTINED status">
+            <span className="text-vigil-muted text-[9px] uppercase">ISOLATED AGENTS</span>
             <span className={`font-bold ${quarantinedCount > 0 ? 'text-vigil-red' : 'text-vigil-muted'}`}>
               {quarantinedCount} QUARANTINED
             </span>
           </div>
           <div className="h-6 w-[1px] bg-vigil-border/30"></div>
-          <div className="flex flex-col items-end">
-            <span className="text-vigil-muted text-[9px] uppercase">THREAT LOGS</span>
-            <span className="text-white font-bold">{totalThreats} PREVENTED</span>
+          <div className="flex flex-col items-end" title="Security incidents whose containment outcome is QUARANTINED">
+            <span className="text-vigil-muted text-[9px] uppercase">CONTAINED THREATS</span>
+            <span className="text-white font-bold">
+              {incidents.filter((i) => i.action_taken === 'QUARANTINE' || (i as any).containment_outcome === 'QUARANTINED').length} CONTAINED
+            </span>
           </div>
         </div>
 
