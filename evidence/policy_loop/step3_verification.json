@@ -1,0 +1,12 @@
+{
+  "step": "post_synthesis_enforcement",
+  "order_status_allowed": true,
+  "order_status_result": "success",
+  "billing_database_blocked": true,
+  "blocked_details": {
+    "exception_type": "PolicyBlockedException",
+    "enforcement_action": "block",
+    "reason": "policy_constraints_not_satisfied",
+    "message": "Tool 'billing_database' denied by OPA: policy_constraints_not_satisfied"
+  }
+}

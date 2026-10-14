@@ -1,0 +1,9 @@
+--- config/customer-bot.armoriq.yaml (before synthesis)
++++ config/customer-bot.armoriq.yaml (after synthesis)
+@@ -11,4 +11,5 @@
+ policy:
+   allow:
+     - vigil-tools.order_status
+-    - vigil-tools.billing_database
++  deny:
++    - vigil-tools.billing_database

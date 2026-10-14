@@ -1,0 +1,6 @@
+# Proposed ArmorIQ deny rules. Review each one before running `armoriq register`.
+
+# config/customer-bot.armoriq.yaml  ->  policy.deny
+policy:
+  deny:
+    - vigil-tools.billing_database

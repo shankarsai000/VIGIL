@@ -19,3 +19,13 @@ Log of every platform write, including configuration registrations and dashboard
 - **Policy**: `allow: ["vigil-containment-v2.quarantine_agent"]`
 - **Pre-validation**: Passed (`armoriq validate`)
 - **Status**: Registered with proxy endpoint `https://customer-proxy.armoriq.ai`
+
+## 2026-10-14T06:50:00Z — Initial Registration: customer-bot
+- **Action**: `armoriq register --config config/customer-bot.armoriq.yaml`
+- **Identity**: `customer-bot`
+- **MCP Server**: `vigil-tools`
+- **Tools**: `order_status`, `billing_database`
+- **Tunnel URL**: `https://monthly-theatre-reward-licence.trycloudflare.com/mcp`
+- **Policy**: `allow: ["vigil-tools.order_status", "vigil-tools.billing_database"]`
+- **Pre-validation**: Passed (`armoriq validate`)
+- **Status**: Registered with proxy endpoint `https://customer-proxy.armoriq.ai`

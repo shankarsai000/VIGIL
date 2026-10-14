@@ -1,0 +1,14 @@
+version: v1
+identity:
+  api_key: ${ARMORIQ_API_KEY}
+  user_id: ${ARMORIQ_USER_EMAIL}
+  agent_id: customer-bot
+environment: production
+mcp_servers:
+  - id: vigil-tools
+    url: https://monthly-theatre-reward-licence.trycloudflare.com/mcp
+    description: Customer bot operational tools (orders, billing)
+policy:
+  allow:
+    - vigil-tools.order_status
+    - vigil-tools.billing_database
