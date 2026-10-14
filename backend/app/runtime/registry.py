@@ -161,6 +161,7 @@ class AgentRegistry:
                 threat_score REAL NOT NULL,
                 proposed_action TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'PENDING',
+                containment_outcome TEXT DEFAULT '',
                 requested_at REAL NOT NULL,
                 resolved_at REAL,
                 resolved_by INTEGER,
@@ -335,6 +336,11 @@ class AgentRegistry:
             # SQLite's AUTOINCREMENT is not valid in PostgreSQL. BIGSERIAL is the equivalent.
             statements = [s.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY") for s in statements]
         await self.db.execute_many(statements)
+        # Migrate existing schema if containment_outcome column is missing
+        try:
+            await self.db.execute("ALTER TABLE approval_requests ADD COLUMN containment_outcome TEXT DEFAULT ''")
+        except Exception:
+            pass
         logger.info("Database schemas verified/created.")
 
     async def register_agent(self, profile: AgentProfile) -> None:
@@ -650,8 +656,8 @@ class AgentRegistry:
         await self.db.execute(
             """
             INSERT INTO approval_requests
-            (request_id, incident_id, agent_id, threat_type, threat_score, proposed_action, status, requested_at, resolved_at, resolved_by, telegram_message_id, chat_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (request_id, incident_id, agent_id, threat_type, threat_score, proposed_action, status, containment_outcome, requested_at, resolved_at, resolved_by, telegram_message_id, chat_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 request.request_id,
@@ -661,6 +667,7 @@ class AgentRegistry:
                 request.threat_score,
                 request.proposed_action,
                 request.status.value,
+                request.containment_outcome or "",
                 request.requested_at,
                 request.resolved_at,
                 request.resolved_by,
@@ -670,39 +677,52 @@ class AgentRegistry:
         )
         logger.info(f"Created approval request: {request.request_id} for incident {request.incident_id}")
 
-    async def resolve_approval_request(self, request_id: str, status: ApprovalStatus, resolved_by: int) -> None:
+    async def resolve_approval_request(
+        self,
+        request_id: str,
+        status: ApprovalStatus,
+        resolved_by: int,
+        containment_outcome: Optional[str] = None,
+    ) -> None:
         await self.db.execute(
             """
             UPDATE approval_requests
-            SET status = ?, resolved_at = ?, resolved_by = ?
+            SET status = ?, resolved_at = ?, resolved_by = ?, containment_outcome = ?
             WHERE request_id = ?
             """,
-            (status.value, datetime.utcnow().timestamp(), resolved_by, request_id),
+            (status.value, datetime.utcnow().timestamp(), resolved_by, containment_outcome or "", request_id),
+        )
+
+    def _row_to_approval_request(self, row: Any) -> ApprovalRequest:
+        keys = row.keys() if hasattr(row, "keys") else []
+        outcome = row["containment_outcome"] if ("containment_outcome" in keys and row["containment_outcome"]) else None
+        return ApprovalRequest(
+            request_id=row["request_id"],
+            incident_id=row["incident_id"],
+            agent_id=row["agent_id"],
+            threat_type=ThreatType(row["threat_type"]),
+            threat_score=row["threat_score"],
+            proposed_action=row["proposed_action"],
+            status=ApprovalStatus(row["status"]),
+            containment_outcome=outcome,
+            requested_at=row["requested_at"],
+            resolved_at=row["resolved_at"],
+            resolved_by=row["resolved_by"],
+            telegram_message_id=row["telegram_message_id"],
+            chat_id=row["chat_id"],
         )
 
     async def get_pending_approvals(self) -> List[ApprovalRequest]:
         rows = await self.db.fetch(
             "SELECT * FROM approval_requests WHERE status = 'PENDING' ORDER BY requested_at DESC"
         )
-        requests = []
-        for row in rows:
-            requests.append(
-                ApprovalRequest(
-                    request_id=row["request_id"],
-                    incident_id=row["incident_id"],
-                    agent_id=row["agent_id"],
-                    threat_type=ThreatType(row["threat_type"]),
-                    threat_score=row["threat_score"],
-                    proposed_action=row["proposed_action"],
-                    status=ApprovalStatus(row["status"]),
-                    requested_at=row["requested_at"],
-                    resolved_at=row["resolved_at"],
-                    resolved_by=row["resolved_by"],
-                    telegram_message_id=row["telegram_message_id"],
-                    chat_id=row["chat_id"],
-                )
-            )
-        return requests
+        return [self._row_to_approval_request(r) for r in rows]
+
+    async def get_all_approvals(self, limit: int = 50) -> List[ApprovalRequest]:
+        rows = await self.db.fetch(
+            f"SELECT * FROM approval_requests ORDER BY requested_at DESC LIMIT {int(limit)}"
+        )
+        return [self._row_to_approval_request(r) for r in rows]
 
     async def get_approval_stats(self) -> Dict[str, int]:
         rows = await self.db.fetch("SELECT status, COUNT(*) AS count FROM approval_requests GROUP BY status")

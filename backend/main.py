@@ -607,6 +607,17 @@ async def get_telegram_approvals():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/telegram/approvals/all")
+async def get_all_telegram_approvals(limit: int = 50):
+    """Returns the list of all governance approval requests including containment outcomes."""
+    try:
+        registry = app.state.registry
+        return await registry.get_all_approvals(limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 @app.get("/telegram/users")
 async def get_telegram_users():
     """Returns the active RBAC operator registry."""
@@ -645,6 +656,7 @@ async def resolve_approval(request_id: str, payload: dict):
             raise HTTPException(status_code=404, detail="Associated incident not found")
             
         resolved_status = None
+        containment_outcome = None
         
         if action == "approve":
             resolved_status = ApprovalStatus.APPROVED
@@ -653,6 +665,7 @@ async def resolve_approval(request_id: str, payload: dict):
                 incident.action_taken = await executor.execute_human_approved(
                     incident, proposed, approver="dashboard-operator"
                 )
+                containment_outcome = incident.action_taken
                 await app.state.event_bus.put(
                     WSEvent(
                         type=WSEventType.REMEDIATION_EXECUTED,
@@ -661,9 +674,12 @@ async def resolve_approval(request_id: str, payload: dict):
                         timestamp=time.time()
                     )
                 )
+            else:
+                containment_outcome = incident.action_taken
         elif action == "deny":
             resolved_status = ApprovalStatus.DENIED
             incident.action_taken = "LOG"
+            containment_outcome = "LOG (DENIED)"
             await executor._execute_log(incident)
             await app.state.event_bus.put(
                 WSEvent(
@@ -675,7 +691,7 @@ async def resolve_approval(request_id: str, payload: dict):
             )
             
         if resolved_status:
-            await registry.resolve_approval_request(request_id, resolved_status, 0)
+            await registry.resolve_approval_request(request_id, resolved_status, 0, containment_outcome=containment_outcome)
             
             from .app.runtime.models import GovernanceAction as ModelsGovernanceAction
             gov_action = ModelsGovernanceAction(
@@ -686,7 +702,7 @@ async def resolve_approval(request_id: str, payload: dict):
             )
             await registry.log_governance_action(gov_action)
             
-            telegram_service = app.state.telegram_service
+            telegram_service = getattr(app.state, "telegram_service", None)
             if telegram_service and telegram_service.is_connected and req_row["chat_id"] and req_row["telegram_message_id"]:
                 try:
                     new_text = f"🛡 <b>VIGIL GOVERNANCE REQUEST RESOLVED</b>\n\n" \
@@ -702,7 +718,8 @@ async def resolve_approval(request_id: str, payload: dict):
                 except Exception as bot_err:
                     logger.warning(f"Failed to update Telegram message card: {bot_err}")
                     
-            await telegram_service.broadcast_status()
+            if telegram_service:
+                await telegram_service.broadcast_status()
             
         return {"status": "success", "resolved_to": action}
     except Exception as e:

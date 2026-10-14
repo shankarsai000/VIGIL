@@ -163,6 +163,12 @@ export class VIGILClient {
     return res.json();
   }
 
+  async getAllTelegramApprovals(limit: number = 20): Promise<ApprovalRequest[]> {
+    const res = await fetch(`/telegram/approvals/all?limit=${limit}`);
+    if (!res.ok) throw new Error(`Failed to fetch all Telegram approvals: ${res.statusText}`);
+    return res.json();
+  }
+
   async getTelegramUsers(): Promise<TelegramUser[]> {
     const res = await fetch('/telegram/users');
     if (!res.ok) throw new Error(`Failed to fetch Telegram users: ${res.statusText}`);

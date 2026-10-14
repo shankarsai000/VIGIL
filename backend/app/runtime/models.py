@@ -247,6 +247,7 @@ class ApprovalRequest(BaseModel):
     resolved_by: Optional[int] = Field(default=None, description="Telegram user ID who resolved")
     telegram_message_id: Optional[int] = Field(default=None, description="Telegram message ID of the approval card")
     chat_id: Optional[int] = Field(default=None, description="Telegram chat ID where approval was sent")
+    containment_outcome: Optional[str] = Field(default=None, description="Actual outcome of containment execution (e.g. QUARANTINE, NOT_CONTAINED (ESCALATE), ALERT, LOG)")
 
 
 class TelegramGovernanceAction(BaseModel):

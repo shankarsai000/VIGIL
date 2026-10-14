@@ -96,6 +96,7 @@ export interface ApprovalRequest {
   threat_score: number;
   proposed_action: string;
   status: 'PENDING' | 'APPROVED' | 'DENIED' | 'EXPIRED' | 'INVESTIGATING';
+  containment_outcome?: string | null;
   requested_at: number;
   resolved_at: number | null;
   resolved_by: number | null;

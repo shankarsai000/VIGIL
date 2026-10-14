@@ -28,7 +28,8 @@ export const TelegramGovernancePanel: React.FC = () => {
   } = useVigilStore();
 
   const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<'approvals' | 'operators'>('approvals');
+  const [activeSubTab, setActiveSubTab] = useState<'approvals' | 'history' | 'operators'>('approvals');
+  const [allApprovals, setAllApprovals] = useState<any[]>([]);
 
   const refetchData = async () => {
     try {
@@ -38,6 +39,8 @@ export const TelegramGovernancePanel: React.FC = () => {
       setPendingApprovals(approvals);
       const users = await vigilClient.getTelegramUsers();
       setTelegramUsers(users);
+      const all = await vigilClient.getAllTelegramApprovals(25);
+      setAllApprovals(all);
     } catch (err) {
       console.warn('Failed to refresh Telegram governance status:', err);
     }
@@ -45,7 +48,7 @@ export const TelegramGovernancePanel: React.FC = () => {
 
   useEffect(() => {
     refetchData();
-    const interval = setInterval(refetchData, 5000);
+    const interval = setInterval(refetchData, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -91,7 +94,7 @@ export const TelegramGovernancePanel: React.FC = () => {
               )}
             </h3>
             <p className="text-[10px] text-slate-500 font-mono">
-              Secure mobile operations pipeline governing agent trust escalations in real-time.
+              Secure mobile operations pipeline governing agent trust escalations with verified containment outcomes.
             </p>
           </div>
         </div>
@@ -119,13 +122,13 @@ export const TelegramGovernancePanel: React.FC = () => {
           </span>
         </div>
         <div className="bg-slate-950/60 border border-vigil-border/10 rounded-lg p-2.5 text-center">
-          <span className="text-[8px] font-bold text-slate-500 block uppercase">REGISTRIES ON FILE</span>
-          <span className="text-base font-bold text-white">{telegramUsers.length} Users</span>
+          <span className="text-[8px] font-bold text-slate-500 block uppercase">TOTAL RECORDED</span>
+          <span className="text-base font-bold text-white">{allApprovals.length} Decisions</span>
         </div>
       </div>
 
       {/* Navigation Buttons for Subpanels */}
-      <div className="flex border-b border-vigil-border/10 text-xs font-mono">
+      <div className="flex border-b border-vigil-border/10 text-xs font-mono space-x-1">
         <button
           onClick={() => setActiveSubTab('approvals')}
           className={`pb-2 px-4 border-b-2 transition-all ${
@@ -134,7 +137,17 @@ export const TelegramGovernancePanel: React.FC = () => {
               : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
-          PENDING APPROVAL QUEUE ({pendingApprovals.length})
+          PENDING QUEUE ({pendingApprovals.length})
+        </button>
+        <button
+          onClick={() => setActiveSubTab('history')}
+          className={`pb-2 px-4 border-b-2 transition-all ${
+            activeSubTab === 'history' 
+              ? 'border-vigil-teal text-vigil-teal font-bold' 
+              : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          CONTAINMENT AUDIT LOG ({allApprovals.length})
         </button>
         <button
           onClick={() => setActiveSubTab('operators')}
@@ -186,6 +199,12 @@ export const TelegramGovernancePanel: React.FC = () => {
                         <span className="text-slate-500">Severity Index:</span>
                         <span className="text-rose-400 font-bold">{(req.threat_score * 100).toFixed(0)}%</span>
                       </div>
+                      <div className="flex justify-between items-center pt-1 border-t border-vigil-border/10">
+                        <span className="text-slate-500">Lifecycle:</span>
+                        <span className="text-[10px] text-amber-300 font-semibold">
+                          {resolvingId === req.request_id ? 'APPROVED (EXECUTING...)' : 'PENDING APPROVAL'}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -193,20 +212,87 @@ export const TelegramGovernancePanel: React.FC = () => {
                     <button
                       onClick={() => handleResolve(req.request_id, 'approve')}
                       disabled={resolvingId !== null}
-                      className="flex-1 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 rounded py-1.5 transition-all uppercase font-bold"
+                      className="flex-1 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 rounded py-1.5 transition-all uppercase font-bold disabled:opacity-50"
                     >
-                      Approve Confinement
+                      {resolvingId === req.request_id ? 'Executing...' : 'Approve Confinement'}
                     </button>
                     <button
                       onClick={() => handleResolve(req.request_id, 'deny')}
                       disabled={resolvingId !== null}
-                      className="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-vigil-border/40 rounded py-1.5 transition-all uppercase"
+                      className="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-vigil-border/40 rounded py-1.5 transition-all uppercase disabled:opacity-50"
                     >
                       Bypass / Deny
                     </button>
                   </div>
                 </div>
               ))}
+            </div>
+          )
+        ) : activeSubTab === 'history' ? (
+          allApprovals.length === 0 ? (
+            <div className="h-full flex flex-col justify-center items-center py-6 text-center space-y-2">
+              <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">
+                No Governance Decisions Recorded
+              </span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-[10px] border-collapse">
+                <thead>
+                  <tr className="border-b border-vigil-border/20 text-slate-500 uppercase">
+                    <th className="pb-2">Request ID</th>
+                    <th className="pb-2">Agent ID</th>
+                    <th className="pb-2">Proposed</th>
+                    <th className="pb-2">Decision</th>
+                    <th className="pb-2">Containment Outcome</th>
+                    <th className="pb-2">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-vigil-border/10 text-slate-300">
+                  {allApprovals.map((req) => {
+                    const isContained = req.containment_outcome && req.containment_outcome.toUpperCase().includes('QUARANTINE');
+                    const isDenied = req.status === 'DENIED';
+                    const isPending = req.status === 'PENDING';
+                    
+                    return (
+                      <tr key={req.request_id} className="hover:bg-slate-900/10 transition-colors">
+                        <td className="py-2 text-slate-500 font-mono">{req.request_id.slice(0, 8)}...</td>
+                        <td className="py-2 font-bold text-white">{req.agent_id}</td>
+                        <td className="py-2 text-slate-300">{req.proposed_action}</td>
+                        <td className="py-2">
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
+                            req.status === 'APPROVED' ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/20' :
+                            req.status === 'DENIED' ? 'bg-rose-950 text-rose-300 border border-rose-500/20' :
+                            'bg-amber-950 text-amber-300 border border-amber-500/20'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="py-2">
+                          {isPending ? (
+                            <span className="text-amber-400 font-mono">⏳ PENDING</span>
+                          ) : req.containment_outcome ? (
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                              isContained 
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
+                                : isDenied 
+                                ? 'bg-slate-800 text-slate-300 border border-slate-700'
+                                : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                            }`}>
+                              {isContained ? '✔ ' : '✖ '} {req.containment_outcome}
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 italic">Not recorded</span>
+                          )}
+                        </td>
+                        <td className="py-2 text-[9px] text-slate-500">
+                          {new Date(req.requested_at * 1000).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )
         ) : (

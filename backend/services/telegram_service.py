@@ -431,9 +431,6 @@ class TelegramService:
         # --- Step 2: Process the governance action ---
         start_time = time.time()
         
-        # Update approval request
-        await self.registry.resolve_approval_request(request_id, resolved_status, db_user.telegram_id)
-        
         # Update incident state
         await self.registry.update_incident_state(incident.incident_id, new_incident_state)
         
@@ -470,6 +467,8 @@ class TelegramService:
                         timestamp=time.time()
                     )
                 )
+            else:
+                remediation_executed = incident.action_taken
                 
         elif action == "deny":
             # Log only
@@ -485,11 +484,21 @@ class TelegramService:
                         timestamp=time.time()
                     )
                 )
+            else:
+                remediation_executed = "LOG (DENIED)"
                 
         elif action == "investigate":
             # Enhanced telemetry (simulated)
             armoriq_decision = "INVESTIGATING"
             remediation_executed = "ENHANCED_TELEMETRY"
+            
+        # Update approval request with containment_outcome
+        await self.registry.resolve_approval_request(
+            request_id,
+            resolved_status,
+            db_user.telegram_id,
+            containment_outcome=remediation_executed,
+        )
             
         # Log detailed Telegram governance action
         telegram_gov_action = TelegramGovernanceAction(
