@@ -3,18 +3,18 @@ import asyncio
 import json
 import time
 from typing import List, Dict, Any, Optional
-from ..app.runtime.models import RemediationChain, AgentStatus, WSEvent, WSEventType
-from .quarantine_service import quarantine_service
+from ..app.runtime.models import RemediationChain, WSEvent, WSEventType
 
 logger = logging.getLogger("vigil.services.auto_remediation")
 
 class AutoRemediationOrchestrator:
     """Orchestrates multi-step autonomous response actions for security incidents."""
     
-    def __init__(self, registry, ws_broadcast_callback=None):
+    def __init__(self, registry, ws_broadcast_callback=None, executor=None):
         self.registry = registry
         # Callback to broadcast websocket events to main.py connection manager
         self.ws_broadcast = ws_broadcast_callback
+        self.executor = executor
 
     async def execute_incident_response(self, incident_id: str, agent_id: str, threat_type: str) -> str:
         """Triggers and tracks the multi-step automated response pipeline for a threat."""
@@ -71,10 +71,18 @@ class AutoRemediationOrchestrator:
                 if i == 0:
                     step["details"] = "Determined remediation plan. Triggering isolation policies."
                 elif i == 1:
-                    # Quarantine agent
-                    quarantine_service.isolate_agent(agent_id)
-                    await self.registry.update_status(agent_id, AgentStatus.QUARANTINED)
-                    step["details"] = f"Isolated agent '{agent_id}' under secure sandbox containment."
+                    # Request containment through ArmorIQ gate (containment is requested, not applied directly)
+                    if self.executor:
+                        outcome = await self.executor.request_containment(
+                            agent_id=agent_id,
+                            threat_type="AUTONOMOUS_REMEDIATION",
+                            score=0.95,
+                            source="auto",
+                            incident_id=incident_id,
+                        )
+                        step["details"] = f"Containment requested from ArmorIQ gate (source=auto): outcome={outcome}."
+                    else:
+                        step["details"] = f"Containment requested from ArmorIQ gate for '{agent_id}'."
                 elif i == 2:
                     step["details"] = "Revoked operational JWT tokens, bearer credentials, and API access keys."
                 elif i == 3:

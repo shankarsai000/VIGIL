@@ -63,6 +63,7 @@ class AgentRegistry:
         self.database_url = database_url
         self.db = create_database(database_url)
         self.event_bus = None
+        self.quarantine_sources: Dict[str, str] = {}
 
     @asynccontextmanager
     async def db_connect(self):
@@ -404,12 +405,19 @@ class AgentRegistry:
             )
         return agents
 
-    async def update_status(self, agent_id: str, status: AgentStatus) -> None:
+    async def update_status(self, agent_id: str, status: AgentStatus, source: Optional[str] = None) -> None:
         await self.db.execute(
             "UPDATE agents SET status = ? WHERE agent_id = ?",
             (status.value, agent_id),
         )
-        logger.info(f"Updated agent status for {agent_id} to {status.value}")
+        if status == AgentStatus.QUARANTINED:
+            self.quarantine_sources[agent_id] = source or "gate"
+        else:
+            self.quarantine_sources.pop(agent_id, None)
+        logger.info(f"Updated agent status for {agent_id} to {status.value} (source: {source or 'none'})")
+
+    def get_quarantine_source(self, agent_id: str) -> Optional[str]:
+        return self.quarantine_sources.get(agent_id)
 
     async def log_event(self, event: AgentEvent, score: float = 0.0) -> None:
         await self.db.execute(

@@ -162,7 +162,8 @@ class ArmorIQGate:
             return PolicyDecision.ESCALATE
         return PolicyDecision.APPROVED
 
-    async def log_audit(self, ctx: ThreatContext, decision: PolicyDecision, action: str) -> None:
+    async def log_audit(self, ctx: ThreatContext, decision: PolicyDecision, action: str, source: Optional[str] = None) -> None:
+        src = source or getattr(ctx, "source", None) or "gate"
         enforcement = "armoriq-live" if self.mode == "live" else f"{self.mode} (NOT ArmorIQ)"
         record = {
             "agent_id": ctx.agent_id,
@@ -172,6 +173,7 @@ class ArmorIQGate:
             "decision": decision.value,
             "action": action,
             "enforcement": enforcement,
+            "source": src,
         }
         try:
             self.ledger.append(record)

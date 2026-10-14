@@ -12,8 +12,8 @@ VIGIL maintains a continuous SHA-256 hash-chained immutable audit ledger in acco
 - **Exported Copy**: [`evidence/ledger_export.jsonl`](file:///evidence/ledger_export.jsonl)
 - **Verified via API**: `GET /audit/verify` (HTTP 200 OK)
 - **Chain Validity (`ok`)**: `True`
-- **Total Validated Entries**: `2023`
-- **Head Digest**: `efb4b0cff50906358a7bede9294259a70cab4b408b4525fe70cd6f7705f4ba6d`
+- **Total Validated Entries**: `2518`
+- **Head Digest**: `7e7da086ece9f8c56e8b1c04ec2886c73cefa29510ab4f04a5f38ab005f41faa`
 - **Broken Sequence / Gap**: `None` (None)
 
 ## 3. Cryptographic Tamper Proof

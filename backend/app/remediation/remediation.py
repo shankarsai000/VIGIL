@@ -9,7 +9,7 @@ import asyncio
 import logging
 import time
 from uuid import uuid4
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from ..runtime.models import (
     AgentEvent,
@@ -20,6 +20,7 @@ from ..runtime.models import (
     PolicyDecision,
     RemediationResult,
     ThreatContext,
+    ThreatType,
     WSEvent,
     WSEventType,
     ApprovalRequest,
@@ -28,6 +29,7 @@ from ..runtime.models import (
 from ..runtime.registry import AgentRegistry
 from ..policies.armoriq_gate import ArmorIQGate
 from ..explainability.explainer import VIGILExplainer
+from ...services.quarantine_service import quarantine_service
 
 logger = logging.getLogger("vigil.remediation")
 
@@ -204,7 +206,8 @@ class RemediationExecutor:
             )
 
         # 8c. Auto-Remediation Orchestrator for CRITICAL threats
-        if self.auto_remediation_orchestrator and score >= 0.85:
+        # Only run if policy approved containment (fail-closed: not on DENY, ESCALATE, or AWAITING_APPROVAL)
+        if self.auto_remediation_orchestrator and score >= 0.85 and policy_decision == PolicyDecision.APPROVED:
             asyncio.create_task(
                 self.auto_remediation_orchestrator.execute_incident_response(
                     incident_id=incident_id,
@@ -259,15 +262,17 @@ class RemediationExecutor:
                 threat_type=incident.threat_type,
                 score=incident.detection_result.score,
                 proposed_action="QUARANTINE",
-                evidence={"approved_by": approver, "incident_id": incident.incident_id},
+                evidence={"approved_by": approver, "incident_id": incident.incident_id, "source": "human"},
+                source="human",
                 timestamp=time.time(),
             )
             decision = await self.gate.authorize_containment(ctx, human_approved=True)
             if decision == PolicyDecision.APPROVED:
-                await self.gate.log_audit(ctx, decision, "QUARANTINE")
-                await self._execute_quarantine(incident.agent_id, incident)
+                await self.gate.log_audit(ctx, decision, "QUARANTINE", source="human")
+                if self.gate.mode != "live":
+                    await self._execute_quarantine(incident.agent_id, incident, source="human")
                 return "QUARANTINE"
-            await self.gate.log_audit(ctx, decision, "NOT_CONTAINED")
+            await self.gate.log_audit(ctx, decision, "NOT_CONTAINED", source="human")
             logger.warning(f"[Remediation] Human approval for {incident.agent_id} did not contain it: gate returned {decision.value}")
             return f"NOT_CONTAINED ({decision.value})"
         if proposed_action == "ALERT":
@@ -276,12 +281,58 @@ class RemediationExecutor:
         await self._execute_log(incident)
         return "LOG"
 
-    async def _execute_quarantine(self, agent_id: str, incident: IncidentRecord) -> None:
+    async def request_containment(
+        self,
+        agent_id: str,
+        threat_type: Any,
+        score: float,
+        source: str = "gate",
+        incident_id: Optional[str] = None,
+        human_approved: bool = False,
+    ) -> str:
+        """Requests containment authorization through the ArmorIQ Gate.
+
+        All containment requests must pass through this method or execute_human_approved.
+        Returns 'QUARANTINE' if authorized and contained, or 'NOT_CONTAINED (<reason>)'.
+        """
+        threat_type_enum = threat_type if isinstance(threat_type, ThreatType) else ThreatType.ANOMALOUS_TOOL_CALL
+        if isinstance(threat_type, str):
+            try:
+                threat_type_enum = ThreatType(threat_type)
+            except Exception:
+                threat_type_enum = ThreatType.ANOMALOUS_TOOL_CALL
+
+        ctx = ThreatContext(
+            agent_id=agent_id,
+            threat_type=threat_type_enum,
+            score=score,
+            proposed_action="QUARANTINE",
+            evidence={"source": source, "incident_id": incident_id},
+            source=source,
+            timestamp=time.time(),
+        )
+        decision = await self.gate.authorize_containment(ctx, human_approved=human_approved)
+        if decision == PolicyDecision.APPROVED:
+            await self.gate.log_audit(ctx, decision, "QUARANTINE", source=source)
+            if self.gate.mode != "live":
+                await self._execute_quarantine(agent_id, None, source=source)
+            return "QUARANTINE"
+        await self.gate.log_audit(ctx, decision, "NOT_CONTAINED", source=source)
+        logger.warning(f"[Remediation] Containment request for {agent_id} (source={source}) was not approved: {decision.value}")
+        return f"NOT_CONTAINED ({decision.value})"
+
+    async def _execute_quarantine(self, agent_id: str, incident: Optional[IncidentRecord] = None, source: str = "gate") -> None:
         """Concludes agent containment, flags state, and broadcasts updates."""
-        logger.warning(f"[Remediation] EXECUTING QUARANTINE for agent: {agent_id}!")
+        logger.warning(f"[Remediation] EXECUTING QUARANTINE for agent: {agent_id} (source={source})!")
         
+        # Keep in-memory isolation service in sync
+        quarantine_service.isolate_agent(agent_id)
+
         # Update registry status
-        await self.registry.update_status(agent_id, AgentStatus.QUARANTINED)
+        try:
+            await self.registry.update_status(agent_id, AgentStatus.QUARANTINED, source=source)
+        except TypeError:
+            await self.registry.update_status(agent_id, AgentStatus.QUARANTINED)
         
         # Get updated profile
         profile = await self.registry.get_agent(agent_id)
@@ -297,15 +348,16 @@ class RemediationExecutor:
             )
 
         # Log incident & broadcast threat
-        await self.registry.log_incident(incident)
-        await self.event_bus.put(
-            WSEvent(
-                type=WSEventType.INCIDENT_DETECTED,
-                agent_id=agent_id,
-                payload=incident.model_dump(),
-                timestamp=time.time(),
+        if incident:
+            await self.registry.log_incident(incident)
+            await self.event_bus.put(
+                WSEvent(
+                    type=WSEventType.INCIDENT_DETECTED,
+                    agent_id=agent_id,
+                    payload=incident.model_dump(),
+                    timestamp=time.time(),
+                )
             )
-        )
 
     async def _execute_awaiting_approval(self, incident: IncidentRecord) -> None:
         """Auditing security threat to the database and broadcasting pending state."""

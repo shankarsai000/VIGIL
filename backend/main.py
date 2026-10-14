@@ -59,6 +59,7 @@ from .services.auto_remediation_orchestrator import AutoRemediationOrchestrator
 from .services.incident_verification_service import IncidentVerificationService
 from .services.behavioral_spoofing_service import BehavioralSpoofingService
 from .services.remediation_script_service import RemediationScriptService
+from .services.quarantine_service import quarantine_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -234,7 +235,7 @@ async def lifespan(app: FastAPI):
     attack_graph_service = AttackGraphService(registry)
     capability_enforcer_service = CapabilityEnforcerService(registry)
     supply_chain_service = SupplyChainService(registry)
-    auto_remediation_orchestrator = AutoRemediationOrchestrator(registry, ws_broadcast_callback=event_bus.put)
+    auto_remediation_orchestrator = AutoRemediationOrchestrator(registry, ws_broadcast_callback=event_bus.put, executor=executor)
     incident_verification_service = IncidentVerificationService(registry, ws_broadcast_callback=event_bus.put)
     behavioral_spoofing_service = BehavioralSpoofingService(registry)
     remediation_script_service = RemediationScriptService(registry)
@@ -542,7 +543,12 @@ async def internal_quarantine(request: Request):
     registry: AgentRegistry = app.state.registry
     if not agent_id or await registry.get_agent(agent_id) is None:
         raise HTTPException(status_code=404, detail="unknown agent")
-    await registry.update_status(agent_id, AgentStatus.QUARANTINED)
+    source = body.get("source", "gate")
+    try:
+        await registry.update_status(agent_id, AgentStatus.QUARANTINED, source=source)
+    except TypeError:
+        await registry.update_status(agent_id, AgentStatus.QUARANTINED)
+    quarantine_service.isolate_agent(agent_id)
     profile = await registry.get_agent(agent_id)
     await app.state.event_bus.put(
         WSEvent(
@@ -552,7 +558,20 @@ async def internal_quarantine(request: Request):
             timestamp=time.time(),
         )
     )
-    logger.warning("[Containment] %s quarantined on an ArmorIQ-authorized call (reason=%s)", agent_id, body.get("reason"))
+    if hasattr(app.state, "gate") and hasattr(app.state.gate, "ledger"):
+        try:
+            mode = getattr(app.state.gate, "mode", "live")
+            enforcement = "armoriq-live" if mode == "live" else f"{mode} (NOT ArmorIQ)"
+            app.state.gate.ledger.append({
+                "agent_id": agent_id,
+                "action": "QUARANTINE",
+                "source": source,
+                "reason": body.get("reason", "armoriq-authorized callback"),
+                "enforcement": enforcement,
+            })
+        except Exception as exc:
+            logger.error("Failed to append containment to ledger: %s", exc)
+    logger.warning("[Containment] %s quarantined on an ArmorIQ-authorized call (source=%s, reason=%s)", agent_id, source, body.get("reason"))
     return {"status": "quarantined", "agent_id": agent_id}
 
 

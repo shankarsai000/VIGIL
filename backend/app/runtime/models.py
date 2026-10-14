@@ -121,6 +121,7 @@ class ThreatContext(BaseModel):
     score: float = Field(description="Combined anomaly/threat score")
     proposed_action: str = Field(description="Action suggested by VIGIL (QUARANTINE, ALERT, LOG)")
     evidence: Dict[str, Any] = Field(default_factory=dict, description="Details, metrics and events leading to detection")
+    source: str = Field(default="gate", description="Source requesting containment: gate, human, auto, graph")
     timestamp: float = Field(default_factory=time.time, description="Unix timestamp of context generation")
 
 

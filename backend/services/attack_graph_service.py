@@ -1,7 +1,15 @@
 import logging
 import time
+from uuid import uuid4
 from typing import List, Dict, Any, Set
-from ..app.runtime.models import AttackGraphNode, AttackGraphEdge, AgentStatus
+from ..app.runtime.models import (
+    AttackGraphNode,
+    AttackGraphEdge,
+    AgentStatus,
+    ApprovalRequest,
+    ApprovalStatus,
+    ThreatType,
+)
 
 logger = logging.getLogger("vigil.services.attack_graph")
 
@@ -123,21 +131,28 @@ class AttackGraphService:
         }
 
     async def isolate_attack_chain(self, triggering_agent_id: str) -> List[str]:
-        """Identifies and quarantines all downstream agents potentially compromised in the attack chain."""
+        """Identifies potentially compromised agents in the attack chain and creates approval requests for containment."""
         analysis = await self.analyze_incident_propagation(triggering_agent_id, 1.0)
-        isolated_agents = []
+        requested_agents = []
         
         for node_data in analysis["nodes"]:
             agent_id = node_data["agent_id"]
             state = node_data["state"]
             
             if state in ("COMPROMISED", "SUSPECT"):
-                # Quarantine agent in registry
                 agent = await self.registry.get_agent(agent_id)
                 if agent and agent.status != AgentStatus.QUARANTINED:
-                    agent.status = AgentStatus.QUARANTINED
-                    await self.registry.register_agent(agent)
-                    isolated_agents.append(agent_id)
-                    logger.warning(f"ATTACK GRAPH ISOLATION: Quarantined downstream agent {agent_id} in chain.")
+                    # Create approval request instead of writing status directly
+                    approval_req = ApprovalRequest(
+                        incident_id=str(uuid4()),
+                        agent_id=agent_id,
+                        threat_type=ThreatType.ATTACK_PROPAGATION,
+                        threat_score=0.85,
+                        proposed_action="QUARANTINE",
+                        status=ApprovalStatus.PENDING,
+                    )
+                    await self.registry.create_approval_request(approval_req)
+                    requested_agents.append(agent_id)
+                    logger.warning(f"ATTACK GRAPH: Created containment approval request for downstream agent {agent_id}.")
                     
-        return isolated_agents
+        return requested_agents
