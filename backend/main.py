@@ -808,6 +808,23 @@ async def resolve_approval(request_id: str, payload: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/telegram/approvals/bulk-resolve", dependencies=[Depends(require_operator)])
+async def bulk_resolve_approvals(payload: dict):
+    """Additive endpoint: bulk resolves multiple approval requests with a single action."""
+    action = payload.get("action", "").lower()
+    request_ids = payload.get("request_ids", [])
+    if action not in ["approve", "deny"]:
+        raise HTTPException(status_code=400, detail="Invalid action. Must be 'approve' or 'deny'")
+    results = []
+    for rid in request_ids:
+        try:
+            res = await resolve_approval(rid, {"action": action})
+            results.append({"request_id": rid, "status": "resolved", "detail": res})
+        except Exception as e:
+            results.append({"request_id": rid, "status": "error", "error": str(e)})
+    return {"status": "bulk_resolved", "action": action, "results": results}
+
+
 @app.get("/api/v2/integrity/{agent_id}")
 async def get_integrity(agent_id: str):
     try:

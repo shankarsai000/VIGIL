@@ -185,6 +185,16 @@ export class VIGILClient {
     return res.json();
   }
 
+  async bulkResolveApprovals(requestIds: string[], action: 'approve' | 'deny'): Promise<{ status: string; action: string; results: any[] }> {
+    const res = await fetch('/telegram/approvals/bulk-resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...operatorHeaders() },
+      body: JSON.stringify({ action, request_ids: requestIds }),
+    });
+    if (!res.ok) throw new Error(`Failed to bulk resolve approvals: ${res.statusText}`);
+    return res.json();
+  }
+
   // VIGIL 2.0 API Methods
   async getModelIntegrity(agentId: string): Promise<{ baseline: ModelIntegrityBaseline | null; events: ModelIntegrityEvent[] }> {
     const res = await fetch(`/api/v2/integrity/${agentId}`);
