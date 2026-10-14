@@ -1,0 +1,42 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# VIGIL Backend Dependencies
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Web framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+
+# Data validation & settings
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+
+# Async database
+asyncpg>=0.29.0
+
+# HTTP client
+httpx>=0.27.0
+
+# ML - Isolation Forest
+scikit-learn>=1.5.0
+numpy>=1.26.0
+
+# AI - Anthropic Claude
+anthropic>=0.28.0
+
+# Redis event bus
+redis>=5.0.7
+
+# WebSocket support (included with uvicorn[standard])
+websockets>=12.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Added in v2: imported by the code but missing from this file before
+aiosqlite>=0.20.0
+joblib>=1.3.0
+python-telegram-bot>=21.0,<22
+
+# ArmorIQ SDK (containment governance) and the containment MCP server
+armoriq-sdk==0.6.10
+mcp>=1.2.0,<2

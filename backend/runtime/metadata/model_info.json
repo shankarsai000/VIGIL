@@ -1,0 +1,20 @@
+{
+    "project": "VIGIL",
+    "version": "V1",
+    "engines": {
+        "telemetry_engine": [
+            "Random Forest",
+            "Isolation Forest",
+            "EWMA"
+        ],
+        "nlp_engine": "DistilBERT"
+    },
+    "capabilities": [
+        "Behavioral Threat Detection",
+        "Prompt Injection Detection",
+        "Anomaly Detection",
+        "Runtime Drift Monitoring",
+        "Hybrid Threat Scoring"
+    ],
+    "deployment_ready": true
+}

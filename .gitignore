@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Database
+*.db
+*.sqlite3
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+backend/storage/replay_logs/
+backend/storage/telemetry_logs/
+backend/storage/audit_logs/
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Model Weights
+*.pth
+*.pt
+*.pkl
+*.safetensors
+*.joblib
+*.h5
+*.hdf5
+*.ckpt
+*.checkpoint
+
+# Zip Files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Docker
+docker-compose.override.yml
+
+# v2 runtime artifacts
+backend/storage/audit_ledger.jsonl
+frontend/.env.local
+.pytest_cache/

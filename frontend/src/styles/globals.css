@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: #030712;
+    --color-bg2: #080d1a;
+    --color-card: #0f172a;
+    --color-border: #1e293b;
+    --color-teal: #00f2fe;
+    --color-red: #ff2a5f;
+    --color-amber: #f59e0b;
+    --color-purple: #bc13fe;
+  }
+
+  body {
+    @apply bg-vigil-bg text-vigil-text overflow-hidden;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(0, 242, 254, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(188, 19, 254, 0.03) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(8, 13, 26, 0.5) 0px, transparent 100%);
+    background-attachment: fixed;
+  }
+
+  * {
+    @apply border-vigil-border;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 242, 254, 0.3);
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background-color: rgba(15, 23, 42, 0.65);
+    @apply backdrop-blur-md border border-vigil-border/40 shadow-2xl;
+  }
+
+  .glass-card {
+    background-color: rgba(30, 41, 59, 0.25);
+    @apply backdrop-blur-sm border border-vigil-border/30 rounded-xl transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply border-vigil-border/80 shadow-lg shadow-black/20;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wider uppercase font-mono;
+  }
+
+  .badge-teal {
+    @apply bg-vigil-teal/10 text-vigil-teal border border-vigil-teal/20 shadow-[0_0_10px_rgba(0,242,254,0.05)];
+  }
+
+  .badge-red {
+    @apply bg-vigil-red/10 text-vigil-red border border-vigil-red/20 shadow-[0_0_10px_rgba(255,42,95,0.05)];
+  }
+
+  .badge-amber {
+    @apply bg-vigil-amber/10 text-vigil-amber border border-vigil-amber/20 shadow-[0_0_10px_rgba(245,158,11,0.05)];
+  }
+
+  .badge-purple {
+    @apply bg-vigil-purple/10 text-vigil-purple border border-vigil-purple/20 shadow-[0_0_10px_rgba(188,19,254,0.05)];
+  }
+
+  .badge-gray {
+    @apply bg-slate-800/40 text-slate-400 border border-slate-700/30;
+  }
+
+  .glow-teal {
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.15), 0 0 40px rgba(0, 242, 254, 0.05);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 15px rgba(255, 42, 95, 0.18), 0 0 40px rgba(255, 42, 95, 0.06);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 15px rgba(188, 19, 254, 0.15), 0 0 40px rgba(188, 19, 254, 0.05);
+  }
+
+  .mono {
+    @apply font-mono;
+  }
+
+  .card-hover-effect {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover-effect:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@layer utilities {
+  .text-gradient-teal {
+    @apply bg-gradient-to-r from-vigil-teal to-cyan-400 bg-clip-text text-transparent;
+  }
+  
+  .text-gradient-purple {
+    @apply bg-gradient-to-r from-vigil-purple to-fuchsia-400 bg-clip-text text-transparent;
+  }
+
+  .border-glow-red {
+    animation: borderGlowRed 1.5s ease-in-out infinite;
+  }
+
+  @keyframes borderGlowRed {
+    0%, 100% { border-color: rgba(255, 42, 95, 0.25); box-shadow: 0 0 5px rgba(255, 42, 95, 0.05); }
+    50% { border-color: rgba(255, 42, 95, 0.7); box-shadow: 0 0 12px rgba(255, 42, 95, 0.15); }
+  }
+
+  .scanlines {
+    position: relative;
+    overflow: hidden;
+  }
+  .scanlines::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 200;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+  }
+
+  .animated-grid-bg {
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(to right, rgba(30, 41, 59, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(30, 41, 59, 0.1) 1px, transparent 1px);
+    background-position: center;
+  }
+}

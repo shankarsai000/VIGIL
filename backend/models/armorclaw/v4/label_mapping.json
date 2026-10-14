@@ -1,0 +1,7 @@
+{
+    "0": "BENIGN_OPERATION",
+    "1": "DATA_EXFILTRATION",
+    "2": "HARD_NEGATIVE",
+    "3": "PROMPT_INJECTION",
+    "4": "TOOL_ABUSE"
+}
