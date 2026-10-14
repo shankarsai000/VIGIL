@@ -240,6 +240,12 @@ export class VIGILClient {
     return res.json();
   }
 
+  async verifyAuditLedger(): Promise<{ ok: boolean; entries: number; last_hash: string | null; bad_seq: number | null; reason: string | null }> {
+    const res = await fetch('/audit/verify');
+    if (!res.ok) throw new Error(`Failed to verify audit ledger: ${res.statusText}`);
+    return res.json();
+  }
+
   async fireAttack(attackType: string): Promise<{ status: string; attack_type: string }> {
     const res = await fetch(`/attack/${attackType}`, { method: 'POST', headers: operatorHeaders() });
     this._handleWriteResponse(res, `fire attack "${attackType}"`);
