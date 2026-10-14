@@ -1,0 +1,18 @@
+{
+  "scenario": "HOLD",
+  "timestamp": 1791960136.2094355,
+  "latency_ms": 15.81,
+  "exception_type": "PolicyHoldException",
+  "delegation_context": {
+    "delegation_id": "del-8889",
+    "status": "PENDING"
+  },
+  "metadata": {
+    "hold_status": "PENDING"
+  },
+  "gate_decision": "ESCALATE",
+  "gate_decision_after_human_approval": "ESCALATE",
+  "enforcement_outcome": "ESCALATE (PolicyHoldException)",
+  "human_override_prevented": true,
+  "notes": "Verified fail-closed contract: In live mode, VIGIL human approval cannot bypass ArmorIQ platform hold."
+}

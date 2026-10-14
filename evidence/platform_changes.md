@@ -8,5 +8,14 @@ Log of every platform write, including configuration registrations and dashboard
 - **MCP Server**: `vigil-containment`
 - **Tool**: `quarantine_agent`
 - **Tunnel URL**: `https://camel-technical-tournament-karma.trycloudflare.com/mcp`
-- **Policy**: `allow: ["vigil-containment.quarantine_agent"]`
 - **Pre-validation**: Passed (`armoriq validate`)
+
+## 2026-10-14T06:40:00Z — Updated Registration: vigil-containment-v2
+- **Action**: `armoriq register --config config/vigil-containment.armoriq.yaml`
+- **Identity**: `vigil-containment-v2`
+- **MCP Server**: `vigil-containment-v2`
+- **Tool**: `quarantine_agent`
+- **Tunnel URL**: `https://friday-gaming-controller-operators.trycloudflare.com/mcp`
+- **Policy**: `allow: ["vigil-containment-v2.quarantine_agent"]`
+- **Pre-validation**: Passed (`armoriq validate`)
+- **Status**: Registered with proxy endpoint `https://customer-proxy.armoriq.ai`

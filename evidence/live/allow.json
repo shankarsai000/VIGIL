@@ -1,0 +1,42 @@
+{
+  "scenario": "ALLOW",
+  "timestamp": 1791960133.9450698,
+  "latency_ms": 4275.08,
+  "goal": "Contain agent customer_bot after DATA_EXFILTRATION",
+  "token_id": "b996eb9e46c1456a9f7952ea76f43052",
+  "plan_id": "703b3e8b-e7f4-4000-9563-bf78a8de6e19",
+  "plan_hash": "300a409b440c6a05835065d2d205592540a378aebf3600208c70eccb8e28e8d7",
+  "policy_validation": {
+    "domain": "friday-gaming-controller-operators.trycloudflare.com",
+    "requested_tools": [
+      "quarantine_agent"
+    ],
+    "allowed_tools": [],
+    "denied_tools": [],
+    "denied_reasons": [],
+    "matched_policies": [
+      {
+        "policyId": "9593b4fd-825f-4867-aeeb-d9065ab11be4",
+        "policyName": "cli-vigil-containment-v2-vigil-containment-v2",
+        "priority": 100,
+        "defaultEnforcementAction": "block",
+        "rules": {}
+      }
+    ],
+    "default_enforcement_action": "block",
+    "decision_source": "opa",
+    "policy_ref": "armoriq:4f50990eb2b3:1a13925a5bf"
+  },
+  "invoke_status": "success",
+  "invoke_result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"status\": \"quarantined\",\n  \"agent_id\": \"customer_bot\"\n}"
+      }
+    ],
+    "isError": false
+  },
+  "enforcement_outcome": "APPROVED (armoriq-live)",
+  "containment_verified": true
+}

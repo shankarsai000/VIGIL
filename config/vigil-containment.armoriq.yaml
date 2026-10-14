@@ -2,12 +2,12 @@ version: v1
 identity:
   api_key: ${ARMORIQ_API_KEY}
   user_id: ${ARMORIQ_USER_EMAIL}
-  agent_id: vigil-containment
+  agent_id: vigil-containment-v2
 environment: production
 mcp_servers:
-  - id: vigil-containment
-    url: https://camel-technical-tournament-karma.trycloudflare.com/mcp
+  - id: vigil-containment-v2
+    url: https://friday-gaming-controller-operators.trycloudflare.com/mcp
     description: VIGIL automated containment actuator
 policy:
   allow:
-    - vigil-containment.quarantine_agent
+    - vigil-containment-v2.quarantine_agent
