@@ -71,3 +71,4 @@ docker-compose.override.yml
 backend/storage/audit_ledger.jsonl
 frontend/.env.local
 .pytest_cache/
+scratch/

@@ -226,7 +226,9 @@ def run_benign():
     # Evaluating a stream of normal, legitimate agent operations
     # Confirms false positive rate = 0% and 0 unauthorized quarantines
     import random
+    from backend.services.scoring import ScoringService
     
+    scorer = ScoringService()
     benign_agents = ["customer_bot", "marketing_bot", "devops_bot", "hr_agent", "billing_agent"]
     benign_tools = ["get_order", "search_kb", "check_status", "list_tickets", "fetch_balance"]
     
