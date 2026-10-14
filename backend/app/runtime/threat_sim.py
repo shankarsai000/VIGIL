@@ -43,6 +43,13 @@ ATTACK_SCENARIOS = {
         "payload": "bulk_export_all_records_including_passwords_and_tokens",
         "payload_size": 500_000,  # 500KB - 100x normal baseline
     },
+    "rate_anomaly": {
+        "agent_id": "customer_bot",
+        "event_type": EventType.QUERY,
+        "target": "user_input",
+        "payload": "RATE_LIMIT_EXCEEDED: burst of 150 requests/sec flooding agent processing queue",
+        "payload_size": 250,
+    },
     "model_integrity_drift": {
         "agent_id": "customer_bot",
         "event_type": EventType.HEARTBEAT,

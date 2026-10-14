@@ -134,6 +134,8 @@ export interface AgentEvent {
   payload: string;
   payload_size: number;
   timestamp: number;
+  origin?: 'user-triggered' | 'simulator';
+  attack_type?: string;
 }
 
 export interface Incident {
@@ -147,6 +149,8 @@ export interface Incident {
   timestamp: number;
   event: AgentEvent;
   state: IncidentState;
+  origin?: 'user-triggered' | 'simulator';
+  attack_type?: string;
 }
 
 export interface AuditEntry {

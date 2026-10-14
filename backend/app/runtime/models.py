@@ -103,6 +103,8 @@ class AgentEvent(BaseModel):
     payload: str = Field(description="Input payload, query, or arguments string")
     payload_size: int = Field(description="Size of the payload in bytes")
     timestamp: float = Field(default_factory=time.time, description="Unix timestamp of the event occurrence")
+    origin: str = Field(default="simulator", description="Source of event: user-triggered or simulator")
+    attack_type: Optional[str] = Field(default=None, description="Predefined attack scenario name if user-triggered")
 
 
 class DetectionResult(BaseModel):
@@ -158,6 +160,8 @@ class IncidentRecord(BaseModel):
     timestamp: float = Field(default_factory=time.time, description="Unix timestamp of incident registration")
     event: AgentEvent = Field(description="Triggering agent event details")
     state: IncidentState = Field(default=IncidentState.NEW, description="Current state of the incident in governance workflow")
+    origin: str = Field(default="simulator", description="Source of event: user-triggered or simulator")
+    attack_type: Optional[str] = Field(default=None, description="Predefined attack scenario name if user-triggered")
 
 
 class AuditEntry(BaseModel):

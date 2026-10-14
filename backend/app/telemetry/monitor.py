@@ -129,8 +129,8 @@ class BehavioralMonitor:
             except Exception as e:
                 logger.error(f"[Monitor] Prompt mutation check failed for {agent_id}: {e}")
 
-        # Capability Enforcement
-        if self.capability_enforcer_service:
+        # Capability Enforcement (applies to tool executions and delegation destinations)
+        if self.capability_enforcer_service and event.event_type.value in ("TOOL_CALL", "DATA_ACCESS", "AGENT_DELEGATION"):
             try:
                 action_type = "TOOL" if event.event_type.value in ("TOOL_CALL", "DATA_ACCESS") else "DESTINATION"
                 is_violation, violation = await self.capability_enforcer_service.enforce_capabilities(

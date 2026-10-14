@@ -63,6 +63,22 @@ class RuleEngine:
                 logger.warning(f"[Rule Engine] Prompt Injection signature matched: '{pattern}'")
                 return SCORE_INJECTION_SIGNATURE, ThreatType.PROMPT_INJECTION
 
+        if "rate_limit_exceeded" in payload_lower or "burst of" in payload_lower or "flooding agent" in payload_lower:
+            logger.warning(f"[Rule Engine] Rate anomaly signature matched")
+            return 0.85, ThreatType.RATE_ANOMALY
+
+        if "simulated_model_poisoning" in payload_lower or "weight drift detected" in payload_lower:
+            logger.warning(f"[Rule Engine] Model integrity drift signature matched")
+            return 0.85, ThreatType.MODEL_POISONING
+
+        if "dependency_signature_verification_failure" in payload_lower or "supply_chain" in payload_lower:
+            logger.warning(f"[Rule Engine] Supply chain tamper signature matched")
+            return 0.90, ThreatType.SUPPLY_CHAIN_COMPROMISE
+
+        if "artificial_mimicry" in payload_lower or "repeating same query" in payload_lower:
+            logger.warning(f"[Rule Engine] Behavioral spoofing signature matched")
+            return 0.85, ThreatType.BEHAVIORAL_SPOOFING
+
         if event.event_type.value == "TOOL_CALL" or event.event_type.value == "DATA_ACCESS":
             if event.target not in profile.permitted_tools:
                 logger.warning(f"[Rule Engine] Scope violation tool: '{event.target}'")

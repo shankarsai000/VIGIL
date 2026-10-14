@@ -156,6 +156,8 @@ class RemediationExecutor:
             explanation="Generating explanation...",
             timestamp=time.time(),
             event=event,
+            origin=getattr(event, "origin", "simulator"),
+            attack_type=getattr(event, "attack_type", None),
         )
 
         # 6. Execute Container Operations

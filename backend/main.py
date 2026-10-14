@@ -522,6 +522,8 @@ async def trigger_attack(attack_type: str):
         monitor: BehavioralMonitor = app.state.monitor
         # Fetch event
         event = get_attack_event(attack_type)
+        event.origin = "user-triggered"
+        event.attack_type = attack_type
         
         # Fire pipeline in background, return HTTP 200 immediately to frontend
         asyncio.create_task(monitor.observe(event))
