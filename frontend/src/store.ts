@@ -26,6 +26,7 @@ export interface VigilState {
   telegramStatus: TelegramStatus | null;
   pendingApprovals: ApprovalRequest[];
   telegramUsers: TelegramUser[];
+  gateMode: string;
 
   // Actions
   setAgents: (agents: Agent[]) => void;
@@ -37,6 +38,7 @@ export interface VigilState {
   setAuditLog: (entries: AuditEntry[]) => void;
   setConnected: (connected: boolean) => void;
   setSelectedIncidentId: (id: string | null) => void;
+  setGateMode: (mode: string) => void;
 
   // New Actions
   setActiveTab: (tab: 'operations' | 'replay' | 'governance' | 'executive' | 'threat_intel') => void;
@@ -62,6 +64,8 @@ export const useVigilStore = create<VigilState>((set) => ({
   connected: false,
   lastUpdate: Date.now(),
   selectedIncidentId: null,
+  gateMode: 'local-demo',
+  setGateMode: (gateMode) => set({ gateMode }),
 
   // Default values
   activeTab: 'operations',

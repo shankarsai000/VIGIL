@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useVigilStore } from '../store';
+import { vigilClient } from '../api';
 
 export const CommandBar: React.FC = () => {
-  const { activeTab, setActiveTab, connected, incidents, agents, telegramStatus, pendingApprovals } = useVigilStore();
+  const { activeTab, setActiveTab, connected, incidents, agents, telegramStatus, pendingApprovals, gateMode, setGateMode } = useVigilStore();
   const [time, setTime] = useState<string>('');
 
   useEffect(() => {
@@ -14,6 +15,43 @@ export const CommandBar: React.FC = () => {
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    vigilClient.getHealth()
+      .then((h) => {
+        if (h.gate_mode) setGateMode(h.gate_mode);
+        else if (h.armoriq_mode) setGateMode(h.armoriq_mode);
+      })
+      .catch(() => {});
+  }, [setGateMode]);
+
+  const getEnforcementBadge = () => {
+    const mode = (gateMode || '').toLowerCase();
+    if (mode === 'live' || mode === 'armoriq-live') {
+      return {
+        text: 'ARMORIQ ENFORCED',
+        dotClass: 'bg-vigil-teal shadow-[0_0_8px_rgba(0,242,254,0.6)] animate-pulse',
+        textClass: 'text-vigil-teal',
+        containerClass: 'bg-vigil-teal/10 border-vigil-teal/30',
+      };
+    }
+    if (mode === 'disabled') {
+      return {
+        text: 'CONTAINMENT DISABLED',
+        dotClass: 'bg-slate-400',
+        textClass: 'text-slate-400',
+        containerClass: 'bg-slate-800/40 border-slate-700/40',
+      };
+    }
+    return {
+      text: 'NOT ENFORCED BY ARMORIQ',
+      dotClass: 'bg-vigil-amber shadow-[0_0_8px_rgba(255,184,0,0.4)] animate-pulse',
+      textClass: 'text-vigil-amber',
+      containerClass: 'bg-vigil-amber/10 border-vigil-amber/30',
+    };
+  };
+
+  const enforcement = getEnforcementBadge();
 
   const quarantinedCount = Array.from(agents.values()).filter(
     (a) => a.status === 'QUARANTINED'
@@ -32,9 +70,9 @@ export const CommandBar: React.FC = () => {
           <span className="font-bold font-sans tracking-widest text-lg text-white">VIGIL</span>
         </div>
         <div className="h-4 w-[1px] bg-vigil-border/50"></div>
-        <div className="flex items-center space-x-2">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-vigil-teal animate-pulse"></span>
-          <span className="text-[10px] text-vigil-teal tracking-widest font-mono uppercase font-bold">ARMORIQ GOVERNED</span>
+        <div className={`flex items-center space-x-2 px-2.5 py-1 rounded-md border text-[10px] tracking-widest font-mono uppercase font-bold ${enforcement.containerClass}`}>
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${enforcement.dotClass}`}></span>
+          <span className={enforcement.textClass}>{enforcement.text}</span>
         </div>
       </div>
 

@@ -400,11 +400,14 @@ async def health():
             except Exception as ex:
                 logger.warning(f"Failed to parse deployment metadata: {ex}")
                 
+        gate_mode = getattr(getattr(app.state, "gate", None), "mode", settings.armoriq_mode)
         return {
             "status": "healthy",
             "timestamp": time.time(),
             "active_agents": len(agents),
-            "deployment_info": deployment_info
+            "deployment_info": deployment_info,
+            "gate_mode": gate_mode,
+            "armoriq_mode": gate_mode,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Health check failed: {e}")

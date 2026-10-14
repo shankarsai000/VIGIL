@@ -38,6 +38,9 @@ class FakeRegistry:
     async def update_status(self, agent_id, status):
         self.statuses[agent_id] = status
 
+    async def list_agents(self):
+        return [SimpleNamespace(agent_id=a) for a in self.known]
+
 
 async def _noop_observe(event):
     return None
@@ -109,3 +112,21 @@ def test_the_audit_verify_route_reports_a_clean_ledger(client, tmp_path):
     app.state.gate = SimpleNamespace(ledger=ledger)
     body = client.get("/audit/verify").json()
     assert body["ok"] is True and body["entries"] == 2 and body["bad_seq"] is None
+
+
+def test_health_reports_gate_mode_additively(client):
+    app.state.registry = FakeRegistry()
+    app.state.gate = SimpleNamespace(mode="live")
+    data = client.get("/health").json()
+    assert data["status"] == "healthy"
+    assert data["gate_mode"] == "live"
+    assert data["armoriq_mode"] == "live"
+
+    app.state.gate = SimpleNamespace(mode="local-demo")
+    data = client.get("/health").json()
+    assert data["gate_mode"] == "local-demo"
+
+    app.state.gate = SimpleNamespace(mode="disabled")
+    data = client.get("/health").json()
+    assert data["gate_mode"] == "disabled"
+

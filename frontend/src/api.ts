@@ -255,6 +255,12 @@ export class VIGILClient {
     }
     return res.json();
   }
+
+  async getHealth(): Promise<{ status: string; gate_mode?: string; armoriq_mode?: string; active_agents?: number }> {
+    const res = await fetch('/health');
+    if (!res.ok) throw new Error(`Health check failed: ${res.statusText}`);
+    return res.json();
+  }
 }
 
 function logger(msg: string) {
