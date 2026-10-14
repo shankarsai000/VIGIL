@@ -20,6 +20,17 @@ EXPLAINER_SYSTEM_PROMPT = (
     "Sentence 3: What was protected and how quickly."
 )
 
+from backend.app.config import settings
+
+def get_storage_name() -> str:
+    db_url = getattr(settings, "database_url", "")
+    if db_url.startswith("postgresql") or db_url.startswith("postgres"):
+        return "PostgreSQL"
+    elif "sqlite" in db_url or getattr(settings, "vigil_db_path", ""):
+        return "SQLite"
+    return "database storage"
+
+
 class ExplainabilityService:
     """Explains technical AI agent vulnerabilities in human-readable plain English."""
 
@@ -84,7 +95,7 @@ class ExplainabilityService:
         self.cache[cache_key] = explanation
         return explanation
 
-    def generate_rule_based(self, incident: Any) -> str:
+    def generate_rule_based(self, incident: Any, enforcement: str = None) -> str:
         agent_name = incident.agent_id.replace("_", " ").title()
         threat = incident.threat_type
         target = incident.event.target
@@ -94,6 +105,10 @@ class ExplainabilityService:
         decision = "approved" if incident.policy_decision.value == "APPROVED" else "escalated"
         if incident.policy_decision.value == "DENIED":
             decision = "overruled"
+
+        # Resolve enforcement mode
+        mode = enforcement or getattr(incident, "enforcement", None) or getattr(settings, "armoriq_mode", "disabled")
+        mode = str(mode).lower().strip()
 
         # Sentence 1: The Attack
         if threat.value == "PROMPT_INJECTION":
@@ -112,18 +127,26 @@ class ExplainabilityService:
             s1 = f"A behavioral threat was initiated through the {agent_name} agent pipeline targeting the '{target}' resource."
 
         # Sentence 2: The Detection and Policy Gate
-        s2 = f"VIGIL's hybrid behavioral monitors flagged the activity with a threat score of {incident.detection_result.score:.0%}, and ArmorIQ {decision} the containment response."
+        # P0-5: Say 'ArmorIQ approved' only when enforcement is armoriq-live
+        if mode in ("armoriq-live", "live"):
+            s2 = f"VIGIL's hybrid behavioral monitors flagged the activity with a threat score of {incident.detection_result.score:.0%}, and ArmorIQ {decision} the containment response."
+        elif mode == "local-demo":
+            s2 = f"VIGIL's hybrid behavioral monitors flagged the activity with a threat score of {incident.detection_result.score:.0%}, and local demo thresholds {decision} the containment response (not ArmorIQ enforced)."
+        else:
+            s2 = f"VIGIL's hybrid behavioral monitors flagged the activity with a threat score of {incident.detection_result.score:.0%}, and containment was disabled by configuration policy."
 
         # Sentence 3: The Protection and Speed
+        storage = get_storage_name()
         time_elapsed = int((incident.timestamp % 1) * 100) + 12
         if action == "Quarantine":
             s3 = f"The agent was quarantined in {time_elapsed}ms, securing downstream databases and blocking further instructions."
         elif action == "Alert":
             s3 = f"An alert warning was dispatched to security response teams in {time_elapsed}ms, locking the threat window."
         else:
-            s3 = f"The threat event details were audited and logged to SQLite in {time_elapsed}ms, preserving pipeline history."
+            s3 = f"The threat event details were audited and logged to {storage} in {time_elapsed}ms, preserving pipeline history."
 
         return f"{s1} {s2} {s3}"
 
 # Singleton service instance
 explainability_service = ExplainabilityService()
+
