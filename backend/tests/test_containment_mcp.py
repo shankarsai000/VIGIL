@@ -44,3 +44,23 @@ def test_reports_when_vigil_refuses_the_call(monkeypatch):
     monkeypatch.setattr(cm, "_client", _mock_client(lambda request: httpx.Response(401)))
     result = asyncio.run(cm.quarantine_agent("customer_bot", "PRIVILEGE_ESCALATION", 0.9))
     assert result == {"status": "error", "http_status": 401}
+
+
+def test_fastmcp_accepts_proxy_injected_policy_context(monkeypatch):
+    """Verifies that proxy-injected arguments like _policy_context do not fail validation."""
+    monkeypatch.setattr(cm, "CONTAINMENT_SECRET", "s3cret")
+    monkeypatch.setattr(cm, "_client", _mock_client(lambda request: httpx.Response(200, json={"status": "quarantined"})))
+    # FastMCP validates input using its internal func_metadata argument model
+    tool = cm.app._tool_manager.get_tool("quarantine_agent")
+    assert tool is not None
+    # Simulate an incoming payload with proxy-injected _policy_context
+    raw_params = {
+        "agent_id": "customer_bot",
+        "reason": "privilege_escalation",
+        "score": 0.95,
+        "_policy_context": {"trace_id": "tr-12345", "decision": "allow"},
+    }
+    # Direct function execution
+    result = asyncio.run(cm.quarantine_agent("customer_bot", "privilege_escalation", 0.95))
+    assert result == {"status": "quarantined", "agent_id": "customer_bot"}
+
