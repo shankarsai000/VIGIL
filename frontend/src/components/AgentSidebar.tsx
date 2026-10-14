@@ -3,6 +3,13 @@ import { useVigilStore } from '../store';
 import { AgentStatus } from '../types';
 import { vigilClient } from '../api';
 
+export function calculateTrustScore(anomalyScore?: number | null): number {
+  if (typeof anomalyScore !== 'number' || isNaN(anomalyScore)) {
+    return 100; // default healthy baseline
+  }
+  return Math.max(0, Math.min(100, Math.round((1 - anomalyScore) * 100)));
+}
+
 export const AgentSidebar: React.FC = () => {
   const { agents, selectedAgentId, setSelectedAgentId, setActiveGraphHighlight } = useVigilStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,12 +117,12 @@ export const AgentSidebar: React.FC = () => {
         ) : (
           filteredAgents.map((agent) => {
             const isSelected = selectedAgentId === agent.agent_id;
-            const trustScore = Math.max(0, Math.min(100, Math.round((1 - agent.anomaly_score) * 100)));
+            const trustScore = calculateTrustScore(agent.anomaly_score);
             const isThreatened = agent.status === AgentStatus.ALERT || agent.status === AgentStatus.ANOMALOUS || agent.status === AgentStatus.REVOKED;
             const isQuarantined = agent.status === AgentStatus.QUARANTINED;
 
             // Generate a simple dynamic sparkline based on status and anomaly score
-            const baselineSeed = agent.anomaly_score > 0.3 ? [15, 35, 10, 45, 60, 30, 80] : [10, 15, 12, 14, 11, 16, 12];
+            const baselineSeed = (agent.anomaly_score ?? 0) > 0.3 ? [15, 35, 10, 45, 60, 30, 80] : [10, 15, 12, 14, 11, 16, 12];
             const sparklinePoints = baselineSeed.map((val, idx) => `${idx * 10},${30 - (val / 100) * 25}`).join(' ');
 
             return (

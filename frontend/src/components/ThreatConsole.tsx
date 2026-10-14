@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ThreatType, PolicyDecision } from '../types';
+import { ThreatType } from '../types';
 import { useVigilStore } from '../store';
+import { containmentOutcome, decisionBadge, enforcementLabel } from '../utils/governanceBadges';
 
 export const ThreatConsole: React.FC = () => {
-  const { incidents, setSelectedIncidentId } = useVigilStore();
+  const { incidents, setSelectedIncidentId, gateMode } = useVigilStore();
   const [expandedIncidentId, setExpandedIncidentId] = useState<string | null>(null);
 
   // Helper to format time relative
@@ -20,19 +21,6 @@ export const ThreatConsole: React.FC = () => {
       return <span className="badge badge-red">{label}</span>;
     }
     return <span className="badge badge-amber">{label}</span>;
-  };
-
-  const getPolicyBadge = (decision: PolicyDecision) => {
-    switch (decision) {
-      case PolicyDecision.APPROVED:
-        return <span className="badge badge-teal">PASSED</span>;
-      case PolicyDecision.DENIED:
-        return <span className="badge badge-red">BLOCKED</span>;
-      case PolicyDecision.ESCALATE:
-        return <span className="badge badge-amber">ESCALATED</span>;
-      default:
-        return <span className="badge badge-gray">{decision}</span>;
-    }
   };
 
   return (
@@ -69,6 +57,9 @@ export const ThreatConsole: React.FC = () => {
             const isExpanded = expandedIncidentId === incident.incident_id;
             const scorePercent = (incident.detection_result.score * 100).toFixed(0);
             const detection = incident.detection_result;
+            const dBadge = decisionBadge(incident.policy_decision);
+            const cOutcome = containmentOutcome(incident);
+            const enf = enforcementLabel(gateMode);
 
             return (
               <div
@@ -91,12 +82,20 @@ export const ThreatConsole: React.FC = () => {
                 {/* Header row */}
                 <div className="flex justify-between items-start z-10">
                   <div className="flex flex-col space-y-1">
-                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-1.5">
                       <span className="text-xs font-bold text-white uppercase tracking-wide">
                         {incident.agent_id}
                       </span>
                       {getThreatBadge(incident.threat_type)}
-                      {getPolicyBadge(incident.policy_decision)}
+                      <span className={dBadge.badgeClass} title="Gate policy decision">
+                        Decision: {dBadge.icon} {dBadge.label}
+                      </span>
+                      <span className={cOutcome.badgeClass} title="Containment outcome">
+                        Containment: {cOutcome.label}
+                      </span>
+                      <span className={enf.badgeClass} title="Enforcement mode">
+                        {enf.label}
+                      </span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-500 font-bold uppercase">
                       ID: {incident.incident_id.slice(0, 12)} | {formatTime(incident.timestamp)}
@@ -178,9 +177,15 @@ export const ThreatConsole: React.FC = () => {
                           <span className="text-slate-500">Raw Input:</span> {incident.event.payload}
                         </div>
                       </div>
-                      <div className="flex justify-between text-[8px] text-slate-500">
+                      <div className="flex flex-wrap justify-between items-center gap-2 text-[8px] text-slate-400 font-mono pt-1 border-t border-slate-800/60">
                         <span>Payload Size: {incident.event.payload_size} bytes</span>
-                        <span className="text-vigil-teal font-bold uppercase">Remediation Action: {incident.action_taken}</span>
+                        <div className="flex items-center space-x-2">
+                          <span>Decision: <strong className="text-white">{dBadge.label}</strong></span>
+                          <span>•</span>
+                          <span>Containment: <strong className="text-vigil-teal">{cOutcome.label}</strong></span>
+                          <span>•</span>
+                          <span>Enforcement: <strong className="text-slate-300">{enf.label}</strong></span>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Incident, AgentStatus } from '../types';
-import { PolicyBadge } from './PolicyBadge';
 import { MetricBar } from './MetricBar';
 import { useVigilStore } from '../store';
 import { vigilClient } from '../api';
+import { containmentOutcome, decisionBadge, enforcementLabel } from '../utils/governanceBadges';
 
 interface IncidentPanelProps {
   incident: Incident | null;
@@ -11,7 +11,7 @@ interface IncidentPanelProps {
 }
 
 export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose }) => {
-  const { agents } = useVigilStore();
+  const { agents, gateMode } = useVigilStore();
   const [confirmingRelease, setConfirmingRelease] = useState(false);
   const [releaseReason, setReleaseReason] = useState('');
   const [releaseError, setReleaseError] = useState<string | null>(null);
@@ -42,15 +42,7 @@ export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose 
   // Format timestamp
   const dateStr = new Date(incident.timestamp * 1000).toLocaleString();
 
-  // Resolve Remediation action class
-  let actionColorClass = 'badge-teal';
-  if (incident.action_taken === 'QUARANTINE') {
-    actionColorClass = 'badge-red animate-pulse';
-  } else if (incident.action_taken === 'ALERT') {
-    actionColorClass = 'badge-amber';
-  } else {
-    actionColorClass = 'badge-gray';
-  }
+
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end animate-fade-in">
@@ -94,9 +86,14 @@ export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose 
                 <MetricBar value={incident.detection_result.score} height={6} />
               </div>
             </div>
-            <div className="flex flex-col items-center gap-1.5 p-3 bg-vigil-bg rounded-lg border border-vigil-border/60 min-w-[100px]">
+            <div className="flex flex-col items-center gap-1.5 p-3 bg-vigil-bg rounded-lg border border-vigil-border/60 min-w-[120px]">
               <span className="text-[8px] text-vigil-muted uppercase tracking-widest font-bold">Policy Gate</span>
-              <PolicyBadge decision={incident.policy_decision} size="sm" />
+              <span className={decisionBadge(incident.policy_decision).badgeClass}>
+                {decisionBadge(incident.policy_decision).icon} {decisionBadge(incident.policy_decision).label}
+              </span>
+              <span className={enforcementLabel(gateMode).badgeClass}>
+                {enforcementLabel(gateMode).label}
+              </span>
             </div>
           </div>
 
@@ -194,10 +191,10 @@ export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose 
               </button>
             )}
             <div>
-              <span className="text-vigil-muted block">Remediation Action:</span>
+              <span className="text-vigil-muted block text-[10px]">Containment Status:</span>
               <div className="mt-0.5">
-                <span className={`badge ${actionColorClass} text-[10px] uppercase font-bold tracking-wider px-2 py-0.5`}>
-                  {incident.action_taken}
+                <span className={containmentOutcome(incident).badgeClass}>
+                  {containmentOutcome(incident).label}
                 </span>
               </div>
             </div>
