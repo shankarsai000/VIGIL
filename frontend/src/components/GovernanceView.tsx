@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useVigilStore } from '../store';
 import { PolicyDecision } from '../types';
 import { vigilClient } from '../api';
+import { formatRelativeTime, formatAbsoluteTooltip } from '../utils/governanceBadges';
 import { TelegramGovernancePanel } from './TelegramGovernancePanel';
 
 export const GovernanceView: React.FC = () => {
@@ -237,8 +238,11 @@ export const GovernanceView: React.FC = () => {
                           {log.score.toFixed(3)}
                         </span>
                       </td>
-                      <td className="p-3 text-[10px] text-slate-500 font-bold select-none">
-                        {new Date(log.timestamp).toLocaleTimeString()}
+                      <td
+                        className="p-3 text-[10px] text-slate-400 font-bold select-none cursor-help hover:text-slate-200 transition-colors"
+                        title={formatAbsoluteTooltip(log.timestamp)}
+                      >
+                        {formatRelativeTime(log.timestamp)}
                       </td>
                     </tr>
                   ))}

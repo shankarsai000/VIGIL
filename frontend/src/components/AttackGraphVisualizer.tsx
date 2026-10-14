@@ -158,16 +158,26 @@ export const AttackGraphVisualizer: React.FC<AttackGraphVisualizerProps> = ({ in
                       strokeDasharray={isThreatEdge ? '4,4' : undefined}
                       markerEnd="url(#arrow)"
                     />
-                    {/* Render propagation likelihood text badge */}
-                    <text
-                      x={(source.x + target.x) / 2}
-                      y={(source.y + target.y) / 2 - 5}
-                      fill={isThreatEdge ? '#ff2a5f' : '#64748b'}
-                      className="font-mono text-[8px] font-bold text-center"
-                      textAnchor="middle"
-                    >
-                      {(edge.propagation_probability * 100).toFixed(0)}%
-                    </text>
+                    {/* Render propagation likelihood text badge with background */}
+                    <g transform={`translate(${(source.x + target.x) / 2}, ${(source.y + target.y) / 2 - 5})`}>
+                      <rect
+                        x="-14"
+                        y="-7"
+                        width="28"
+                        height="12"
+                        rx="2"
+                        fill="#020617"
+                        fillOpacity="0.9"
+                      />
+                      <text
+                        textAnchor="middle"
+                        dy="2"
+                        fill={isThreatEdge ? '#ff2a5f' : '#94a3b8'}
+                        className="font-mono text-[8px] font-bold select-none pointer-events-none"
+                      >
+                        {(edge.propagation_probability * 100).toFixed(0)}%
+                      </text>
+                    </g>
                   </g>
                 );
               })}
@@ -195,6 +205,9 @@ export const AttackGraphVisualizer: React.FC<AttackGraphVisualizerProps> = ({ in
                   fillColor = '#1c1203';
                   filterId = 'url(#glow-suspect)';
                 }
+
+                // Dynamic label placement to avoid edge/border collision
+                const labelY = y > centerY + 20 ? 27 : -21;
 
                 return (
                   <g 
@@ -224,14 +237,27 @@ export const AttackGraphVisualizer: React.FC<AttackGraphVisualizerProps> = ({ in
                       {node.agent_id.substring(0, 3).toUpperCase()}
                     </text>
 
-                    {/* Label */}
-                    <text
-                      textAnchor="middle"
-                      y="26"
-                      className="fill-slate-400 font-sans text-[9px] font-semibold"
-                    >
-                      {node.agent_id}
-                    </text>
+                    {/* Label with collision-free pill backdrop */}
+                    <g transform={`translate(0, ${labelY})`}>
+                      <rect
+                        x="-38"
+                        y="-8"
+                        width="76"
+                        height="15"
+                        rx="3"
+                        fill="#020617"
+                        fillOpacity="0.88"
+                        stroke="#1e293b"
+                        strokeWidth="0.5"
+                      />
+                      <text
+                        textAnchor="middle"
+                        dy="2.5"
+                        className="fill-slate-300 font-sans text-[8.5px] font-semibold select-none pointer-events-none"
+                      >
+                        {node.agent_id}
+                      </text>
+                    </g>
                   </g>
                 );
               })}

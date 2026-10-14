@@ -200,3 +200,24 @@ export const EnforcementBadgeView: React.FC<{ mode?: string }> = ({ mode }) => {
   const e = enforcementLabel(mode);
   return <span className={e.badgeClass}>{e.label}</span>;
 };
+
+/**
+ * P2: Relative timestamp helper with ms/s normalization and absolute tooltip helper.
+ */
+export function formatRelativeTime(ts: number): string {
+  const ms = ts < 1e12 ? ts * 1000 : ts;
+  const elapsedSecs = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (elapsedSecs < 60) return `${elapsedSecs}s ago`;
+  const mins = Math.floor(elapsedSecs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+export function formatAbsoluteTooltip(ts: number): string {
+  const ms = ts < 1e12 ? ts * 1000 : ts;
+  return new Date(ms).toLocaleString();
+}
+

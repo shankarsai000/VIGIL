@@ -1,19 +1,11 @@
 import React, { useState } from 'react';
 import { ThreatType } from '../types';
 import { useVigilStore } from '../store';
-import { containmentOutcome, decisionBadge, enforcementLabel } from '../utils/governanceBadges';
+import { containmentOutcome, decisionBadge, enforcementLabel, formatRelativeTime, formatAbsoluteTooltip } from '../utils/governanceBadges';
 
 export const ThreatConsole: React.FC = () => {
   const { incidents, setSelectedIncidentId, gateMode } = useVigilStore();
   const [expandedIncidentId, setExpandedIncidentId] = useState<string | null>(null);
-
-  // Helper to format time relative
-  const formatTime = (ts: number) => {
-    const elapsed = Math.max(0, Math.floor(Date.now() / 1000 - ts));
-    if (elapsed < 60) return `${elapsed}s ago`;
-    const mins = Math.floor(elapsed / 60);
-    return `${mins}m ago`;
-  };
 
   const getThreatBadge = (type: ThreatType) => {
     const label = type.replace('_', ' ');
@@ -106,8 +98,11 @@ export const ThreatConsole: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500 font-bold uppercase">
-                      ID: {incident.incident_id.slice(0, 12)} | {formatTime(incident.timestamp)}
+                    <span
+                      className="text-[10px] font-mono text-slate-500 font-bold uppercase cursor-help hover:text-slate-300 transition-colors"
+                      title={`Timestamp: ${formatAbsoluteTooltip(incident.timestamp)}`}
+                    >
+                      ID: {incident.incident_id.slice(0, 12)} | {formatRelativeTime(incident.timestamp)}
                     </span>
                   </div>
 

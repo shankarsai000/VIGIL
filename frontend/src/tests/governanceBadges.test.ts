@@ -4,6 +4,8 @@ import {
   decisionBadge,
   enforcementLabel,
   approvalPreview,
+  formatRelativeTime,
+  formatAbsoluteTooltip,
 } from '../utils/governanceBadges';
 import { calculateTrustScore } from '../components/AgentSidebar';
 import { PolicyDecision } from '../types';
@@ -168,6 +170,30 @@ describe('VIGIL Governance & UI Helpers (Vitest)', () => {
       expect(calculateTrustScore(0.85)).toBe(15);
       expect(calculateTrustScore(0.0)).toBe(100);
       expect(calculateTrustScore(1.0)).toBe(0);
+    });
+  });
+
+  describe('P2: Relative timestamps and absolute tooltips', () => {
+    it('formats recent timestamps in seconds ago', () => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      expect(formatRelativeTime(nowSec - 10)).toBe('10s ago');
+    });
+
+    it('formats minute elapsed timestamps', () => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      expect(formatRelativeTime(nowSec - 125)).toBe('2m ago');
+    });
+
+    it('handles millisecond timestamps gracefully', () => {
+      const nowMs = Date.now();
+      expect(formatRelativeTime(nowMs - 5000)).toBe('5s ago');
+    });
+
+    it('generates non-empty absolute tooltip strings', () => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const tip = formatAbsoluteTooltip(nowSec);
+      expect(tip).toBeTruthy();
+      expect(typeof tip).toBe('string');
     });
   });
 });
