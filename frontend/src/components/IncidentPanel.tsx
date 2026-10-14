@@ -1,7 +1,9 @@
-import React from 'react';
-import { Incident } from '../types';
+import React, { useState } from 'react';
+import { Incident, AgentStatus } from '../types';
 import { PolicyBadge } from './PolicyBadge';
 import { MetricBar } from './MetricBar';
+import { useVigilStore } from '../store';
+import { vigilClient } from '../api';
 
 interface IncidentPanelProps {
   incident: Incident | null;
@@ -9,7 +11,31 @@ interface IncidentPanelProps {
 }
 
 export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose }) => {
+  const { agents } = useVigilStore();
+  const [confirmingRelease, setConfirmingRelease] = useState(false);
+  const [releaseReason, setReleaseReason] = useState('');
+  const [releaseError, setReleaseError] = useState<string | null>(null);
+  const [isReleasing, setIsReleasing] = useState(false);
+
   if (!incident) return null;
+
+  const agent = agents.get(incident.agent_id);
+  const isAgentQuarantined = agent?.status === AgentStatus.QUARANTINED;
+
+  const handleConfirmRelease = async () => {
+    if (!incident.agent_id || !releaseReason.trim()) return;
+    setIsReleasing(true);
+    setReleaseError(null);
+    try {
+      await vigilClient.releaseAgent(incident.agent_id, releaseReason.trim());
+      setConfirmingRelease(false);
+      setReleaseReason('');
+    } catch (err: any) {
+      setReleaseError(err.message || 'Failed to release agent');
+    } finally {
+      setIsReleasing(false);
+    }
+  };
 
   const scorePercent = (incident.detection_result.score * 100).toFixed(0);
   
@@ -158,17 +184,65 @@ export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose 
             <span className="text-vigil-muted">Logged:</span>
             <div className="text-white font-semibold mt-0.5">{dateStr}</div>
           </div>
-          <div className="text-right">
-            <span className="text-vigil-muted">Remediation Action:</span>
-            <div className="mt-0.5">
-              <span className={`badge ${actionColorClass} text-[10px] uppercase font-bold tracking-wider px-2 py-0.5`}>
-                {incident.action_taken}
-              </span>
+          <div className="flex items-center space-x-3 text-right">
+            {isAgentQuarantined && (
+              <button
+                onClick={() => { setConfirmingRelease(true); setReleaseError(null); }}
+                className="px-2.5 py-1 text-[10px] uppercase font-bold font-mono tracking-wider bg-vigil-teal/20 text-vigil-teal border border-vigil-teal/40 hover:bg-vigil-teal hover:text-black rounded transition-all duration-200"
+              >
+                Release Agent
+              </button>
+            )}
+            <div>
+              <span className="text-vigil-muted block">Remediation Action:</span>
+              <div className="mt-0.5">
+                <span className={`badge ${actionColorClass} text-[10px] uppercase font-bold tracking-wider px-2 py-0.5`}>
+                  {incident.action_taken}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
       </div>
+
+      {/* Release Confirmation Dialog */}
+      {confirmingRelease && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-slate-900 border border-vigil-border/60 rounded-xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <h3 className="text-sm font-bold font-mono text-white uppercase tracking-wider">Confirm Quarantine Release</h3>
+            <p className="text-xs text-slate-300">
+              Are you sure you want to release agent <span className="text-vigil-teal font-mono font-bold">{incident.agent_id}</span> back to normal operational status?
+            </p>
+            <div>
+              <label className="text-[10px] text-slate-400 font-mono block mb-1">Reason for release (required):</label>
+              <input
+                type="text"
+                value={releaseReason}
+                onChange={(e) => setReleaseReason(e.target.value)}
+                placeholder="e.g., Security investigation complete; threat mitigated"
+                className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-vigil-teal font-mono"
+              />
+            </div>
+            {releaseError && <p className="text-[11px] text-vigil-red font-mono">{releaseError}</p>}
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                onClick={() => { setConfirmingRelease(false); setReleaseReason(''); setReleaseError(null); }}
+                className="px-3 py-1.5 text-xs font-mono text-slate-400 hover:text-white bg-slate-800 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!releaseReason.trim() || isReleasing}
+                onClick={handleConfirmRelease}
+                className="px-4 py-1.5 text-xs font-mono font-bold text-black bg-vigil-teal hover:bg-vigil-teal/80 disabled:opacity-50 rounded"
+              >
+                {isReleasing ? 'Releasing...' : 'Confirm Release'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

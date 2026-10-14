@@ -450,6 +450,11 @@ class DynamicTrafficSimulator:
                 for agent in quarantined:
                     agent_id = agent.agent_id
                     
+                    # P0-1: Quarantine is released only by human action. Never restore gate or human applied quarantines.
+                    source = self.registry.get_quarantine_source(agent_id) if hasattr(self.registry, "get_quarantine_source") else None
+                    if source in ("gate", "human", "auto", "graph"):
+                        continue
+
                     # If this is the first time we see this quarantined agent, track its quarantine timestamp
                     if agent_id not in self.quarantined_agents:
                         self.quarantined_agents[agent_id] = now

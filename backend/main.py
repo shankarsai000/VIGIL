@@ -575,6 +575,63 @@ async def internal_quarantine(request: Request):
     return {"status": "quarantined", "agent_id": agent_id}
 
 
+@app.post("/agents/{agent_id}/release")
+async def release_agent(agent_id: str, request: Request):
+    """Releases a quarantined agent back to NORMAL status upon human operator confirmation."""
+    require_operator(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    reason = (body.get("reason") or "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail="A reason is required to release an agent from quarantine.")
+    
+    registry: AgentRegistry = app.state.registry
+    agent = await registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
+    
+    if agent.status != AgentStatus.QUARANTINED:
+        raise HTTPException(status_code=400, detail=f"Agent '{agent_id}' is not currently quarantined (status={agent.status.value}).")
+    
+    # Restore status to NORMAL
+    await registry.update_status(agent_id, AgentStatus.NORMAL)
+    
+    # Release in in-memory quarantine_service
+    quarantine_service.release_agent(agent_id)
+    
+    profile = await registry.get_agent(agent_id)
+    
+    # Broadcast status change to WebSocket
+    await app.state.event_bus.put(
+        WSEvent(
+            type=WSEventType.AGENT_UPDATE,
+            agent_id=agent_id,
+            payload=profile.model_dump(mode="json"),
+            timestamp=time.time(),
+        )
+    )
+    
+    # Ledger entry
+    if hasattr(app.state, "gate") and hasattr(app.state.gate, "ledger"):
+        try:
+            mode = getattr(app.state.gate, "mode", "live")
+            enforcement = "armoriq-live" if mode == "live" else f"{mode} (NOT ArmorIQ)"
+            app.state.gate.ledger.append({
+                "agent_id": agent_id,
+                "action": "RELEASE",
+                "source": "human",
+                "reason": reason,
+                "enforcement": enforcement,
+            })
+        except Exception as exc:
+            logger.error("Failed to append release to ledger: %s", exc)
+            
+    logger.info(f"[Release] Agent '{agent_id}' released from quarantine by human operator (reason: {reason})")
+    return {"status": "released", "agent_id": agent_id, "reason": reason}
+
+
 @app.get("/audit/verify")
 async def verify_audit_ledger():
     """Recomputes the hash chain of the audit ledger and reports the first broken entry, if any."""

@@ -239,6 +239,22 @@ export class VIGILClient {
     if (!res.ok) throw new Error(`Failed to fetch threat intelligence: ${res.statusText}`);
     return res.json();
   }
+
+  async releaseAgent(agentId: string, reason: string): Promise<{ status: string; agent_id: string; reason: string }> {
+    const res = await fetch(`/agents/${agentId}/release`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...operatorHeaders(),
+      },
+      body: JSON.stringify({ reason }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `Failed to release agent: ${res.statusText}`);
+    }
+    return res.json();
+  }
 }
 
 function logger(msg: string) {
