@@ -1,0 +1,13 @@
+version: v1
+identity:
+  api_key: ${ARMORIQ_API_KEY}
+  user_id: ${ARMORIQ_USER_EMAIL}
+  agent_id: vigil-containment
+environment: production
+mcp_servers:
+  - id: vigil-containment
+    url: https://camel-technical-tournament-karma.trycloudflare.com/mcp
+    description: VIGIL automated containment actuator
+policy:
+  allow:
+    - vigil-containment.quarantine_agent

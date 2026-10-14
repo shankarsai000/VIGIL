@@ -9,6 +9,7 @@ Expose:  put a tunnel in front of it and register that URL with ArmorIQ, like an
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -19,6 +20,8 @@ VIGIL_INTERNAL_URL = os.getenv("VIGIL_INTERNAL_URL", "http://127.0.0.1:8000")
 CONTAINMENT_SECRET = os.getenv("CONTAINMENT_SECRET", "")
 
 app = FastMCP("vigil-containment", host=HOST, port=PORT)
+if hasattr(app.settings, "transport_security") and app.settings.transport_security:
+    app.settings.transport_security.enable_dns_rebinding_protection = False
 
 
 def _client() -> httpx.AsyncClient:
@@ -26,7 +29,7 @@ def _client() -> httpx.AsyncClient:
 
 
 @app.tool()
-async def quarantine_agent(agent_id: str, reason: str, score: float = 0.0) -> dict:
+async def quarantine_agent(agent_id: str, reason: str, score: float = 0.0, **extra: Any) -> dict:
     """Quarantine one agent in VIGIL. Call only after ArmorIQ has authorized the call."""
     if not CONTAINMENT_SECRET:
         return {"status": "refused", "detail": "CONTAINMENT_SECRET is not set on the containment server"}
