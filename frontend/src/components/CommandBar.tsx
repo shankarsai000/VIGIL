@@ -3,7 +3,20 @@ import { useVigilStore } from '../store';
 import { vigilClient } from '../api';
 
 export const CommandBar: React.FC = () => {
-  const { activeTab, setActiveTab, connected, incidents, agents, telegramStatus, pendingApprovals, gateMode, setGateMode } = useVigilStore();
+  const {
+    activeTab,
+    setActiveTab,
+    connectionStatus,
+    reconnectCountdown,
+    lastWsEventTime,
+    lastWsErrorTime,
+    incidents,
+    agents,
+    telegramStatus,
+    pendingApprovals,
+    gateMode,
+    setGateMode,
+  } = useVigilStore();
   const [time, setTime] = useState<string>('');
 
   useEffect(() => {
@@ -74,11 +87,11 @@ export const CommandBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center space-x-1 bg-slate-900/60 p-1 border border-vigil-border/30 rounded-lg">
+      {/* Tabs - Single-line whitespace-nowrap */}
+      <div className="flex items-center space-x-1 bg-slate-900/60 p-1 border border-vigil-border/30 rounded-lg shrink-0">
         <button
           onClick={() => setActiveTab('operations')}
-          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase transition-all duration-200 ${
+          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase whitespace-nowrap transition-all duration-200 ${
             activeTab === 'operations'
               ? 'bg-vigil-teal text-black shadow-[0_0_12px_rgba(0,242,254,0.2)] font-bold'
               : 'text-vigil-muted hover:text-white hover:bg-slate-800/40'
@@ -88,7 +101,7 @@ export const CommandBar: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('replay')}
-          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase transition-all duration-200 ${
+          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase whitespace-nowrap transition-all duration-200 ${
             activeTab === 'replay'
               ? 'bg-vigil-teal text-black shadow-[0_0_12px_rgba(0,242,254,0.2)] font-bold'
               : 'text-vigil-muted hover:text-white hover:bg-slate-800/40'
@@ -98,7 +111,7 @@ export const CommandBar: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('governance')}
-          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase transition-all duration-200 ${
+          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase whitespace-nowrap transition-all duration-200 ${
             activeTab === 'governance'
               ? 'bg-vigil-teal text-black shadow-[0_0_12px_rgba(0,242,254,0.2)] font-bold'
               : 'text-vigil-muted hover:text-white hover:bg-slate-800/40'
@@ -108,7 +121,7 @@ export const CommandBar: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('executive')}
-          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase transition-all duration-200 ${
+          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase whitespace-nowrap transition-all duration-200 ${
             activeTab === 'executive'
               ? 'bg-vigil-teal text-black shadow-[0_0_12px_rgba(0,242,254,0.2)] font-bold'
               : 'text-vigil-muted hover:text-white hover:bg-slate-800/40'
@@ -118,7 +131,7 @@ export const CommandBar: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('threat_intel')}
-          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase transition-all duration-200 ${
+          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase whitespace-nowrap transition-all duration-200 ${
             activeTab === 'threat_intel'
               ? 'bg-vigil-teal text-black shadow-[0_0_12px_rgba(0,242,254,0.2)] font-bold'
               : 'text-vigil-muted hover:text-white hover:bg-slate-800/40'
@@ -158,13 +171,38 @@ export const CommandBar: React.FC = () => {
           <span className="text-white font-bold tracking-widest">{time}</span>
         </div>
 
-        {/* Connection status */}
-        <div className="flex items-center space-x-2 pl-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-vigil-teal shadow-[0_0_8px_rgba(0,242,254,0.5)] animate-pulse' : 'bg-vigil-red animate-ping'}`} />
-          <span className="text-[10px] tracking-wider uppercase font-mono font-semibold">
-            {connected ? 'CONNECTED' : 'DISCONNECTED'}
-          </span>
-        </div>
+        {/* Connection status (3 states: connected, reconnecting with countdown, offline) */}
+        {(() => {
+          const isActuallyConnected = connectionStatus === 'connected' && lastWsEventTime > lastWsErrorTime;
+          if (isActuallyConnected) {
+            return (
+              <div className="flex items-center space-x-2 pl-2" title="WebSocket pipeline connected and active">
+                <div className="w-2.5 h-2.5 rounded-full bg-vigil-teal shadow-[0_0_8px_rgba(0,242,254,0.6)] animate-pulse" />
+                <span className="text-[10px] tracking-wider uppercase font-mono font-bold text-vigil-teal">
+                  CONNECTED
+                </span>
+              </div>
+            );
+          }
+          if (connectionStatus === 'reconnecting') {
+            return (
+              <div className="flex items-center space-x-2 pl-2" title={`Reconnecting in ${reconnectCountdown}s (exponential backoff)`}>
+                <div className="w-2.5 h-2.5 rounded-full bg-vigil-amber shadow-[0_0_8px_rgba(255,184,0,0.5)] animate-pulse" />
+                <span className="text-[10px] tracking-wider uppercase font-mono font-bold text-vigil-amber">
+                  RECONNECTING ({reconnectCountdown}s)
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div className="flex items-center space-x-2 pl-2" title="WebSocket disconnected">
+              <div className="w-2.5 h-2.5 rounded-full bg-vigil-red" />
+              <span className="text-[10px] tracking-wider uppercase font-mono font-bold text-vigil-red">
+                OFFLINE
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Telegram status */}
         <div className="flex items-center space-x-2 border-l border-vigil-border/30 pl-4 font-mono text-[10px] select-none relative">

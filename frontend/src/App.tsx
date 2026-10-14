@@ -28,15 +28,32 @@ const App: React.FC = () => {
     setTelegramStatus,
     setPendingApprovals,
     setTelegramUsers,
+    setConnectionStatus,
+    recordWsEvent,
+    recordWsError,
+    writeErrorBanner,
+    setWriteErrorBanner,
   } = useVigilStore();
 
   useEffect(() => {
     // 1. Establish WebSocket Connection
     vigilClient.connect();
     
-    // 2. Wire Connection Status Updates
+    // 2. Wire Connection Status & Observability Updates
     vigilClient.onConnectionChange = (status) => {
       setConnected(status);
+    };
+    vigilClient.onStateChange = (status, countdown) => {
+      setConnectionStatus(status, countdown);
+    };
+    vigilClient.onWsEvent = () => {
+      recordWsEvent();
+    };
+    vigilClient.onWsError = () => {
+      recordWsError();
+    };
+    vigilClient.onWriteError = (banner) => {
+      setWriteErrorBanner(banner);
     };
 
     // 3. Register Global WebSocket Pipeline Interceptors
@@ -119,7 +136,7 @@ const App: React.FC = () => {
       cleanupEventBus();
       vigilClient.disconnect();
     };
-  }, [setAgents, updateAgent, addIncident, updateIncidentExplanation, updateIncidentState, addAuditEntry, setAuditLog, setConnected, setTelegramStatus, setPendingApprovals, setTelegramUsers]);
+  }, [setAgents, updateAgent, addIncident, updateIncidentExplanation, updateIncidentState, addAuditEntry, setAuditLog, setConnected, setTelegramStatus, setPendingApprovals, setTelegramUsers, setConnectionStatus, recordWsEvent, recordWsError, setWriteErrorBanner]);
 
   // Dynamically render viewport matching selected navigation tab
   const renderMainView = () => {
@@ -144,6 +161,22 @@ const App: React.FC = () => {
       
       {/* 1. Global Navigation Top Bar Component */}
       <CommandBar />
+
+      {/* Configuration Error / Write Rejection Banner (Names missing setting, never a value) */}
+      {writeErrorBanner && (
+        <div className="bg-rose-950/90 border-b border-rose-500/60 px-6 py-2.5 flex items-center justify-between text-xs text-rose-200 z-50 backdrop-blur-md shadow-lg shrink-0">
+          <div className="flex items-center space-x-3">
+            <span className="text-rose-400 font-bold font-mono tracking-wider">⚠️ REJECTION:</span>
+            <span className="font-medium font-sans">{writeErrorBanner}</span>
+          </div>
+          <button
+            onClick={() => setWriteErrorBanner(null)}
+            className="text-rose-300 hover:text-white px-2.5 py-1 border border-rose-500/50 rounded text-[10px] uppercase font-mono tracking-wider hover:bg-rose-900/50 transition-colors"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* 2. Main Executive Operational Body Container */}
       <div className="flex-grow flex h-[calc(100vh-120px)] overflow-hidden relative">

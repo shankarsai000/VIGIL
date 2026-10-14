@@ -10,6 +10,11 @@ export interface VigilState {
   incidents: Incident[];
   auditLog: AuditEntry[];
   connected: boolean;
+  connectionStatus: 'connected' | 'reconnecting' | 'offline';
+  reconnectCountdown: number;
+  lastWsEventTime: number;
+  lastWsErrorTime: number;
+  writeErrorBanner: string | null;
   lastUpdate: number;
   selectedIncidentId: string | null;
 
@@ -37,6 +42,10 @@ export interface VigilState {
   addAuditEntry: (entry: AuditEntry) => void;
   setAuditLog: (entries: AuditEntry[]) => void;
   setConnected: (connected: boolean) => void;
+  setConnectionStatus: (status: 'connected' | 'reconnecting' | 'offline', countdown?: number) => void;
+  recordWsEvent: () => void;
+  recordWsError: () => void;
+  setWriteErrorBanner: (banner: string | null) => void;
   setSelectedIncidentId: (id: string | null) => void;
   setGateMode: (mode: string) => void;
 
@@ -62,6 +71,11 @@ export const useVigilStore = create<VigilState>((set) => ({
   incidents: [],
   auditLog: [],
   connected: false,
+  connectionStatus: 'offline',
+  reconnectCountdown: 0,
+  lastWsEventTime: 0,
+  lastWsErrorTime: 0,
+  writeErrorBanner: null,
   lastUpdate: Date.now(),
   selectedIncidentId: null,
   gateMode: 'local-demo',
@@ -136,7 +150,32 @@ export const useVigilStore = create<VigilState>((set) => ({
       lastUpdate: Date.now(),
     })),
 
-  setConnected: (connected) => set(() => ({ connected })),
+  setConnected: (connected) =>
+    set(() => ({
+      connected,
+      connectionStatus: connected ? 'connected' : 'offline',
+    })),
+
+  setConnectionStatus: (connectionStatus, countdown = 0) =>
+    set(() => ({
+      connectionStatus,
+      reconnectCountdown: countdown,
+      connected: connectionStatus === 'connected',
+    })),
+
+  recordWsEvent: () =>
+    set(() => ({
+      lastWsEventTime: Date.now(),
+      lastUpdate: Date.now(),
+    })),
+
+  recordWsError: () =>
+    set(() => ({
+      lastWsErrorTime: Date.now(),
+      connected: false,
+    })),
+
+  setWriteErrorBanner: (writeErrorBanner) => set(() => ({ writeErrorBanner })),
 
   setSelectedIncidentId: (id) => set(() => ({ selectedIncidentId: id })),
 

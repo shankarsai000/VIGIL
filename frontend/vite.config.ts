@@ -13,7 +13,7 @@ export default defineConfig({
     port: 5173,
     allowedHosts: process.env.VITE_ALLOWED_HOSTS
       ? process.env.VITE_ALLOWED_HOSTS.split(',')
-      : ['localhost', '127.0.0.1', 'forge-informed-trinity-bibliography.trycloudflare.com'],
+      : ['localhost', '127.0.0.1'],
     proxy: {
       '/observe': 'http://127.0.0.1:8000',
       '/agents': 'http://127.0.0.1:8000',
@@ -26,6 +26,15 @@ export default defineConfig({
       '/ws': {
         target: 'ws://127.0.0.1:8000',
         ws: true,
+        changeOrigin: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err: any) => {
+            // Suppress unhandled ECONNRESET when backend restarts or client reconnects
+            if (err?.code !== 'ECONNRESET') {
+              console.warn('[Vite Proxy Warning]', err?.message || err);
+            }
+          });
+        },
       },
     },
   },

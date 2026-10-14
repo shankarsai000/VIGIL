@@ -39,15 +39,72 @@ export class VIGILClient {
   private eventHandlers: EventHandler[] = [];
   private reconnectAttempts = 0;
   private reconnectTimer: number | null = null;
-  private _connected = false;
+  private countdownTimer: number | null = null;
+  private _connectionStatus: 'connected' | 'reconnecting' | 'offline' = 'offline';
+  private _reconnectCountdown = 0;
+  private _lastWsEventTime = 0;
+  private _lastWsErrorTime = 0;
+
   private _onConnectionChange: ((connected: boolean) => void) | null = null;
+  private _onStateChange: ((status: 'connected' | 'reconnecting' | 'offline', countdown?: number) => void) | null = null;
+  private _onWsEvent: (() => void) | null = null;
+  private _onWsError: (() => void) | null = null;
+  private _onWriteError: ((banner: string) => void) | null = null;
 
   get connected(): boolean {
-    return this._connected;
+    return this._connectionStatus === 'connected' && this._lastWsEventTime > this._lastWsErrorTime;
+  }
+
+  get connectionStatus(): 'connected' | 'reconnecting' | 'offline' {
+    return this._connectionStatus;
+  }
+
+  get reconnectCountdown(): number {
+    return this._reconnectCountdown;
   }
 
   set onConnectionChange(handler: (connected: boolean) => void) {
     this._onConnectionChange = handler;
+  }
+
+  set onStateChange(handler: (status: 'connected' | 'reconnecting' | 'offline', countdown?: number) => void) {
+    this._onStateChange = handler;
+  }
+
+  set onWsEvent(handler: () => void) {
+    this._onWsEvent = handler;
+  }
+
+  set onWsError(handler: () => void) {
+    this._onWsError = handler;
+  }
+
+  set onWriteError(handler: (banner: string) => void) {
+    this._onWriteError = handler;
+  }
+
+  private _notifyState(): void {
+    const isConn = this._connectionStatus === 'connected' && this._lastWsEventTime > this._lastWsErrorTime;
+    this._onConnectionChange?.(isConn);
+    this._onStateChange?.(this._connectionStatus, this._reconnectCountdown);
+  }
+
+  private _handleWriteResponse(res: Response, operationName: string): void {
+    if (!res.ok) {
+      if (res.status === 401) {
+        this._onWriteError?.(
+          `Write rejected (401 Unauthorized) for ${operationName}: Missing or mismatched OPERATOR_API_KEY / VITE_VIGIL_OPERATOR_KEY setting. Verify environment configuration.`
+        );
+      } else if (res.status === 503) {
+        this._onWriteError?.(
+          `Write unavailable (503 Service Unavailable) for ${operationName}: ArmorIQ policy enforcement gateway unreachable. Check ARMORIQ_API_KEY setting.`
+        );
+      } else {
+        this._onWriteError?.(
+          `Write failed (${res.status} ${res.statusText}) for ${operationName}.`
+        );
+      }
+    }
   }
 
   connect(): void {
@@ -61,12 +118,16 @@ export class VIGILClient {
       
       this.ws.onopen = () => {
         console.log('[VIGIL] WebSocket connected');
-        this._connected = true;
         this.reconnectAttempts = 0;
-        this._onConnectionChange?.(true);
+        this._connectionStatus = 'connected';
+        this._lastWsEventTime = Date.now();
+        this._notifyState();
       };
 
       this.ws.onmessage = (event) => {
+        this._lastWsEventTime = Date.now();
+        this._onWsEvent?.();
+        this._notifyState();
         try {
           const data = JSON.parse(event.data) as WSEvent;
           this.eventHandlers.forEach((handler) => handler(data));
@@ -75,23 +136,34 @@ export class VIGILClient {
         }
       };
 
-      this.ws.onclose = () => {
-        console.log('[VIGIL] WebSocket disconnected');
-        this._connected = false;
-        this._onConnectionChange?.(false);
+      this.ws.onclose = (event) => {
+        console.log('[VIGIL] WebSocket disconnected (code:', event.code, ')');
+        this._lastWsErrorTime = Date.now();
+        this._onWsError?.();
+        this._connectionStatus = 'offline';
+        this._notifyState();
         this._scheduleReconnect();
       };
 
       this.ws.onerror = (error) => {
         console.error('[VIGIL] WebSocket error:', error);
+        this._lastWsErrorTime = Date.now();
+        this._onWsError?.();
+        this._notifyState();
       };
     } catch (err) {
       console.error('[VIGIL] Failed to create WebSocket:', err);
+      this._lastWsErrorTime = Date.now();
+      this._onWsError?.();
       this._scheduleReconnect();
     }
   }
 
   disconnect(): void {
+    if (this.countdownTimer !== null) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -101,8 +173,8 @@ export class VIGILClient {
       this.ws.close();
       this.ws = null;
     }
-    this._connected = false;
-    this._onConnectionChange?.(false);
+    this._connectionStatus = 'offline';
+    this._notifyState();
   }
 
   onEvent(handler: EventHandler): () => void {
@@ -113,13 +185,37 @@ export class VIGILClient {
   }
 
   private _scheduleReconnect(): void {
+    if (this.countdownTimer !== null) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
       console.error('[VIGIL] Max reconnect attempts reached');
+      this._connectionStatus = 'offline';
+      this._notifyState();
       return;
     }
+
+    this._connectionStatus = 'reconnecting';
     const delay = BASE_RECONNECT_DELAY * Math.pow(2, this.reconnectAttempts);
-    console.log(`[VIGIL] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1})`);
+    this._reconnectCountdown = Math.ceil(delay / 1000);
+    this._notifyState();
+
+    this.countdownTimer = window.setInterval(() => {
+      this._reconnectCountdown = Math.max(0, this._reconnectCountdown - 1);
+      this._notifyState();
+    }, 1000);
+
     this.reconnectTimer = window.setTimeout(() => {
+      if (this.countdownTimer !== null) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+      }
       this.reconnectAttempts++;
       this.connect();
     }, delay);
@@ -146,6 +242,7 @@ export class VIGILClient {
 
   async fireAttack(attackType: string): Promise<{ status: string; attack_type: string }> {
     const res = await fetch(`/attack/${attackType}`, { method: 'POST', headers: operatorHeaders() });
+    this._handleWriteResponse(res, `fire attack "${attackType}"`);
     if (!res.ok) throw new Error(`Failed to fire attack: ${res.statusText}`);
     return res.json();
   }
@@ -181,6 +278,7 @@ export class VIGILClient {
       headers: { 'Content-Type': 'application/json', ...operatorHeaders() },
       body: JSON.stringify({ action }),
     });
+    this._handleWriteResponse(res, `resolve approval (${action})`);
     if (!res.ok) throw new Error(`Failed to resolve approval: ${res.statusText}`);
     return res.json();
   }
@@ -191,6 +289,7 @@ export class VIGILClient {
       headers: { 'Content-Type': 'application/json', ...operatorHeaders() },
       body: JSON.stringify({ action, request_ids: requestIds }),
     });
+    this._handleWriteResponse(res, `bulk resolve (${action})`);
     if (!res.ok) throw new Error(`Failed to bulk resolve approvals: ${res.statusText}`);
     return res.json();
   }
@@ -259,6 +358,7 @@ export class VIGILClient {
       },
       body: JSON.stringify({ reason }),
     });
+    this._handleWriteResponse(res, `release agent ${agentId}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));
       throw new Error(err.detail || `Failed to release agent: ${res.statusText}`);
