@@ -505,6 +505,34 @@ async def list_incidents(limit: int = 50):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/incidents/{incident_id}/confirm", dependencies=[Depends(require_operator)])
+async def confirm_incident(incident_id: str):
+    """Sets label ATTACK and label_source incident_confirmed on actions for an incident."""
+    try:
+        registry: AgentRegistry = app.state.registry
+        incident = await registry.get_incident(incident_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found")
+
+        updated_count = await registry.confirm_incident_actions(
+            incident_id=incident_id,
+            agent_id=incident.agent_id,
+            timestamp=incident.timestamp,
+        )
+        return {
+            "status": "confirmed",
+            "incident_id": incident_id,
+            "agent_id": incident.agent_id,
+            "actions_updated": updated_count,
+            "label": "ATTACK",
+            "label_source": "incident_confirmed",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/audit")
 async def fetch_audit_log(limit: int = 50):
     """Retrieves threat assessment history from ArmorIQ with database local fallback."""

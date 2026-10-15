@@ -69,6 +69,11 @@ class PostgresDatabase:
                 for statement in statements:
                     await conn.execute(statement)
 
+    async def executemany(self, sql: str, params_seq: Sequence[Sequence]) -> None:
+        converted = _convert_placeholders_postgres(sql)
+        async with self.acquire() as conn:
+            await conn.executemany(converted, params_seq)
+
 
 class SQLiteDatabase:
     """Lightweight aiosqlite wrapper for SQLite persistence."""
@@ -121,6 +126,11 @@ class SQLiteDatabase:
                 logger.info(f"Completed statement {idx+1}")
             await conn.commit()
             logger.info("All statements committed successfully")
+
+    async def executemany(self, sql: str, params_seq: Sequence[Sequence]) -> None:
+        async with self.acquire() as conn:
+            await conn.executemany(sql, params_seq)
+            await conn.commit()
 
 
 def create_database(database_url: str):

@@ -15,6 +15,7 @@ from ..runtime.models import AgentEvent, AgentProfile, ObservationResult, Detect
 from ..runtime.registry import AgentRegistry
 from ..detection.detector import HybridDetector
 from ..remediation.remediation import RemediationExecutor
+from ..immune.records import ActionRecord
 
 logger = logging.getLogger("vigil.monitor")
 
@@ -55,6 +56,7 @@ class BehavioralMonitor:
         
         # Sliding windows: windows[agent_id] = deque(AgentEvent, maxlen=500)
         self.windows: Dict[str, deque] = {}
+        self.recording_failures_total: int = 0
 
     async def observe(self, event: AgentEvent) -> ObservationResult:
         """Processes an incoming event through the active pipeline.
@@ -74,7 +76,22 @@ class BehavioralMonitor:
         profile = await self.registry.get_agent(agent_id)
         if not profile:
             logger.warning(f"[Monitor] Observed event for unregistered agent ID: '{agent_id}'. Discarding.")
+            try:
+                rec = ActionRecord.from_agent_event(event=event, observed_decision="UNOBSERVED")
+                if hasattr(self.registry, "log_action_record"):
+                    await self.registry.log_action_record(rec)
+            except Exception as rec_err:
+                self.recording_failures_total += 1
+                logger.error(f"[Monitor] ActionRecord failure for unregistered '{agent_id}': {rec_err}")
             return ObservationResult(event=event, detection_result=None, action_taken=None)
+
+        # Track previous tool called by this agent before appending current event
+        prev_tool = None
+        if agent_id in self.windows and self.windows[agent_id]:
+            for prev_e in reversed(self.windows[agent_id]):
+                if getattr(prev_e.event_type, "value", str(prev_e.event_type)) == "TOOL_CALL":
+                    prev_tool = prev_e.target
+                    break
 
         # 2. Append event to agent sliding window
         if agent_id not in self.windows:
@@ -158,6 +175,7 @@ class BehavioralMonitor:
 
         # 7. Act on threats above baseline threshold (0.45)
         action_taken = None
+        remediation_result = None
         if detection_result.score >= 0.45:
             logger.warning(
                 f"[Monitor] High threat threshold breached ({detection_result.score:.2f} >= 0.45) "
@@ -165,6 +183,31 @@ class BehavioralMonitor:
             )
             remediation_result = await self.executor.respond(event, detection_result, profile)
             action_taken = remediation_result.action_taken
+
+        # 8. Record action into action_records (fail-safe: errors counted, never block detection/containment)
+        try:
+            if action_taken == "QUARANTINE":
+                observed_decision = "DENY"
+            elif action_taken in ("AWAITING_APPROVAL", "ALERT"):
+                observed_decision = "HOLD"
+            else:
+                observed_decision = "ALLOW"
+
+            is_sim = getattr(event, "origin", None) == "simulator"
+            inc_id = getattr(remediation_result, "incident_id", None) if remediation_result else None
+
+            action_record = ActionRecord.from_agent_event(
+                event=event,
+                observed_decision=observed_decision,
+                prev_tool=prev_tool,
+                incident_id=inc_id,
+                is_simulation_mode=is_sim,
+            )
+            if hasattr(self.registry, "log_action_record"):
+                await self.registry.log_action_record(action_record)
+        except Exception as rec_err:
+            self.recording_failures_total += 1
+            logger.error(f"[Monitor] Action record recording failure for '{agent_id}': {rec_err}")
 
         return ObservationResult(
             event=event,
