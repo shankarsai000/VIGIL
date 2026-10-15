@@ -1,0 +1,6 @@
+{
+  "allow": [],
+  "deny": [
+    "vigil-tools/billing_database"
+  ]
+}

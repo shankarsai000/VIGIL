@@ -1,0 +1,7 @@
+Exit Code: 1
+STDOUT:
+✓ Config syntax valid
+Error: API key is empty. Set ARMORIQ_API_KEY or update identity.api_key.
+
+STDERR:
+

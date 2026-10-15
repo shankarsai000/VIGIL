@@ -1,0 +1,57 @@
+{
+  "agent_id": "customer-bot",
+  "approval_count": 1,
+  "approvals": [
+    "operator_admin_01"
+  ],
+  "assumptions": {
+    "assumed_benign_labels": "Assumed benign baseline: unlabelled historical traffic is assumed benign rather than formally proven benign; ground truth derives exclusively from simulator ground truth or human-confirmed security incidents.",
+    "exchangeability": "Conditional exchangeability: future operational agent actions are assumed to follow the same distribution as the recorded traffic window for this agent and role.",
+    "window_bounds": {
+      "duration_seconds": 1000.0,
+      "end_ts": 1700001000.0,
+      "records_evaluated": 705,
+      "start_ts": 1700000000.0
+    }
+  },
+  "impact_tier": "LOW",
+  "proposal_id": "prop-m3-accepted-001",
+  "replay_reports": [
+    {
+      "assumptions": {
+        "assumed_benign_labels": "Assumed benign baseline: unlabelled historical traffic is assumed benign rather than formally proven benign; ground truth derives exclusively from simulator ground truth or human-confirmed security incidents.",
+        "exchangeability": "Conditional exchangeability: future operational agent actions are assumed to follow the same distribution as the recorded traffic window for this agent and role.",
+        "window_bounds": {
+          "duration_seconds": 1000.0,
+          "end_ts": 1700001000.0,
+          "records_evaluated": 705,
+          "start_ts": 1700000000.0
+        }
+      },
+      "attacks_blocked": 5,
+      "attacks_total": 5,
+      "benign_blocked": 0,
+      "benign_total": 700,
+      "candidate_rule": {
+        "agent_id": "customer-bot",
+        "mcp_id": "vigil-tools",
+        "tool": "billing_database"
+      },
+      "coverage": 1.0,
+      "delta": 0.05,
+      "false_block_point": 0.0,
+      "false_block_upper": 0.00427,
+      "status": "ACCEPT"
+    }
+  ],
+  "rules": {
+    "dot_notation": [
+      "vigil-tools.billing_database"
+    ],
+    "slash_notation": [
+      "vigil-tools/billing_database"
+    ]
+  },
+  "rules_count": 1,
+  "status": "APPROVED"
+}
