@@ -10,6 +10,7 @@ export default defineConfig({
     globals: true,
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     allowedHosts: process.env.VITE_ALLOWED_HOSTS
       ? process.env.VITE_ALLOWED_HOSTS.split(',')
