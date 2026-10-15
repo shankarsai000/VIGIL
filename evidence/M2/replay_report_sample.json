@@ -1,0 +1,26 @@
+{
+  "candidate_rule": {
+    "agent_id": "customer_bot",
+    "tool": "system_override",
+    "mcp_id": null
+  },
+  "status": "INSUFFICIENT_EVIDENCE",
+  "coverage": 0.5,
+  "attacks_total": 100,
+  "attacks_blocked": 50,
+  "benign_total": 200,
+  "benign_blocked": 0,
+  "false_block_point": 0.0,
+  "false_block_upper": 0.014867039231272056,
+  "delta": 0.05,
+  "assumptions": {
+    "exchangeability": "Conditional exchangeability: future operational agent actions are assumed to follow the same distribution as the recorded traffic window for this agent and role.",
+    "assumed_benign_labels": "Assumed benign baseline: unlabelled historical traffic is assumed benign rather than formally proven benign; ground truth derives exclusively from simulator ground truth or human-confirmed security incidents.",
+    "window_bounds": {
+      "start_ts": 1700000000.4852407,
+      "end_ts": 1700000414.3960965,
+      "duration_seconds": 413.9108557701111,
+      "records_evaluated": 1300
+    }
+  }
+}
