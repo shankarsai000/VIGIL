@@ -138,5 +138,9 @@ def create_database(database_url: str):
     if database_url.startswith("postgresql://") or database_url.startswith("postgres://"):
         return PostgresDatabase(database_url)
     else:
-        # Assume SQLite
-        return SQLiteDatabase(database_url)
+        path = database_url
+        if path.startswith("sqlite:///"):
+            path = path[10:]
+        elif path.startswith("sqlite://"):
+            path = path[9:]
+        return SQLiteDatabase(path)

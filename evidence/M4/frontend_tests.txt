@@ -1,0 +1,14 @@
+﻿
+> vigil-dashboard@1.0.0 test
+> vitest run --run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.0[39m [90mD:/vigil-v2/vigil-v2/frontend[39m
+
+ [32mΓ£ô[39m src/tests/governanceBadges.test.ts [2m ([22m[2m33 tests[22m[2m)[22m[90m 92[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m33 passed[39m[22m[90m (33)[39m
+[2m   Start at [22m 09:12:15
+[2m   Duration [22m 9.22s[2m (transform 347ms, setup 0ms, collect 544ms, tests 92ms, environment 5.65s, prepare 1.64s)[22m
+

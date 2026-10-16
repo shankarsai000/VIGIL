@@ -25,6 +25,7 @@ export default defineConfig({
       '/health': 'http://127.0.0.1:8000',
       '/telegram': 'http://127.0.0.1:8000',
       '/api': 'http://127.0.0.1:8000',
+      '/policies': 'http://127.0.0.1:8000',
       '/ws': {
         target: 'ws://127.0.0.1:8000',
         ws: true,

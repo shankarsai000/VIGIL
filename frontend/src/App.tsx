@@ -13,6 +13,7 @@ import { ReplayView } from './components/ReplayView';
 import { GovernanceView } from './components/GovernanceView';
 import { ExecutiveView } from './components/ExecutiveView';
 import { ThreatIntelligenceDashboard } from './components/ThreatIntelligenceDashboard';
+import { PolicyProposalsView } from './components/PolicyProposalsView';
 
 const App: React.FC = () => {
   const {
@@ -151,6 +152,8 @@ const App: React.FC = () => {
         return <ExecutiveView />;
       case 'threat_intel':
         return <ThreatIntelligenceDashboard />;
+      case 'proposals':
+        return <PolicyProposalsView />;
       default:
         return <OperationsView />;
     }

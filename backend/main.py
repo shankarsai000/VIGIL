@@ -11,10 +11,11 @@ from contextlib import asynccontextmanager
 import json
 import logging
 import time
-from typing import Set, Dict, Any, List
+from uuid import uuid4
+from typing import Set, Dict, Any, List, Optional, Tuple
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from .app.config import settings
 from .app.runtime.models import (
@@ -60,6 +61,22 @@ from .services.incident_verification_service import IncidentVerificationService
 from .services.behavioral_spoofing_service import BehavioralSpoofingService
 from .services.remediation_script_service import RemediationScriptService
 from .services.quarantine_service import quarantine_service
+from .app.runtime.ledger import AuditLedger
+from .app.immune.workflow import (
+    PolicyProposalRecord,
+    ProposalConfig,
+    DEFAULT_PROPOSAL_CONFIG,
+    compute_impact_tier,
+    generate_yaml_diff,
+    STATUS_PROPOSED,
+    STATUS_APPROVED,
+    STATUS_REJECTED,
+    STATUS_EXPIRED,
+    TIER_HIGH,
+    TIER_LOW,
+)
+from .app.immune.replay import CandidateRule, evaluate_candidate_rule
+from .app.immune.records import ActionRecord
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -531,6 +548,316 @@ async def confirm_incident(incident_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class CreateProposalRequest(BaseModel):
+    agent_id: str
+    tool: str
+    mcp_id: Optional[str] = None
+    window_start: Optional[float] = None
+    window_end: Optional[float] = None
+
+
+def _get_audit_ledger() -> AuditLedger:
+    gate = getattr(getattr(app, "state", None), "gate", None)
+    if gate and getattr(gate, "ledger", None):
+        return gate.ledger
+    return AuditLedger(settings.audit_ledger_path)
+
+
+@app.get("/policies/proposals")
+async def list_policy_proposals():
+    """Lists all policy proposals (public read), auto-expiring proposals older than 72 hours."""
+    try:
+        registry: AgentRegistry = app.state.registry
+        raw_proposals = await registry.list_policy_proposals()
+        now = time.time()
+        results = []
+        for r in raw_proposals:
+            rec = PolicyProposalRecord.model_validate(r)
+            if rec.status == STATUS_PROPOSED and rec.is_expired(now):
+                rec.status = STATUS_EXPIRED
+                await registry.update_policy_proposal(rec.id, status=STATUS_EXPIRED)
+                _get_audit_ledger().append({
+                    "event": "POLICY_PROPOSAL_EXPIRED",
+                    "proposal_id": rec.id,
+                    "agent_id": rec.agent_id,
+                    "tool": rec.tool,
+                    "ts": now,
+                })
+            out = rec.model_dump()
+            out["yaml_diff"] = generate_yaml_diff(rec)
+            out["approval_progress"] = rec.approval_progress_text()
+            out["required_approvals"] = rec.required_approvals_count()
+            results.append(out)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/policies/proposals/{proposal_id}")
+async def get_policy_proposal(proposal_id: str):
+    """Retrieves a single policy proposal (public read), auto-expiring if past 72 hours."""
+    try:
+        registry: AgentRegistry = app.state.registry
+        raw = await registry.get_policy_proposal(proposal_id)
+        if not raw:
+            raise HTTPException(status_code=404, detail=f"Proposal '{proposal_id}' not found")
+        rec = PolicyProposalRecord.model_validate(raw)
+        now = time.time()
+        if rec.status == STATUS_PROPOSED and rec.is_expired(now):
+            rec.status = STATUS_EXPIRED
+            await registry.update_policy_proposal(rec.id, status=STATUS_EXPIRED)
+            _get_audit_ledger().append({
+                "event": "POLICY_PROPOSAL_EXPIRED",
+                "proposal_id": rec.id,
+                "agent_id": rec.agent_id,
+                "tool": rec.tool,
+                "ts": now,
+            })
+        out = rec.model_dump()
+        out["yaml_diff"] = generate_yaml_diff(rec)
+        out["approval_progress"] = rec.approval_progress_text()
+        out["required_approvals"] = rec.required_approvals_count()
+        return out
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/policies/proposals", status_code=201, dependencies=[Depends(require_operator)])
+async def create_policy_proposal(req: CreateProposalRequest):
+    """Runs replay on recorded traffic and creates a policy proposal if and only if replay ACCEPTs."""
+    try:
+        registry: AgentRegistry = app.state.registry
+        records_data = await registry.get_action_records(
+            agent_id=req.agent_id,
+            start_ts=req.window_start,
+            end_ts=req.window_end,
+            limit=25000,
+        )
+        records = [r if isinstance(r, ActionRecord) else ActionRecord.model_validate(r) for r in records_data]
+
+        candidate = CandidateRule(agent_id=req.agent_id, tool=req.tool, mcp_id=req.mcp_id)
+        report = evaluate_candidate_rule(records, candidate)
+
+        # Rule: Only ACCEPT results become proposals.
+        if report.status != "ACCEPT":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": f"Candidate rule evaluated to {report.status}; only ACCEPT results become proposals.",
+                    "status": report.status,
+                    "coverage": report.coverage,
+                    "false_block_upper": report.false_block_upper,
+                    "benign_total": report.benign_total,
+                    "attacks_total": report.attacks_total,
+                },
+            )
+
+        # Rule: impact_tier is HIGH when family spans >1 agent, benign_total > 5000, or false_block_point > 0.
+        tier = compute_impact_tier(report)
+
+        now = time.time()
+        proposal_id = f"prop-{uuid4().hex[:8]}"
+        expires_at = now + (DEFAULT_PROPOSAL_CONFIG.expiration_hours * 3600.0)
+
+        record = PolicyProposalRecord(
+            id=proposal_id,
+            status=STATUS_PROPOSED,
+            agent_id=req.agent_id,
+            mcp_id=req.mcp_id,
+            tool=req.tool,
+            impact_tier=tier,
+            replay_json=report.to_json(),
+            assumptions_json=json.dumps(report.assumptions.model_dump()),
+            approvals_json="[]",
+            created_at=now,
+            expires_at=expires_at,
+            decided_at=None,
+            version=1,
+        )
+        await registry.create_policy_proposal(record)
+
+        # Rule: Every state change writes a ledger entry that records the approver identity / creator.
+        _get_audit_ledger().append({
+            "event": "POLICY_PROPOSAL_CREATED",
+            "proposal_id": proposal_id,
+            "agent_id": req.agent_id,
+            "tool": req.tool,
+            "impact_tier": tier,
+            "coverage": report.coverage,
+            "false_block_upper": report.false_block_upper,
+            "ts": now,
+        })
+
+        out = record.model_dump()
+        out["yaml_diff"] = generate_yaml_diff(record)
+        out["approval_progress"] = record.approval_progress_text()
+        out["required_approvals"] = record.required_approvals_count()
+        return out
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/policies/proposals/{proposal_id}/approve", dependencies=[Depends(require_operator)])
+async def approve_policy_proposal(proposal_id: str, request: Request):
+    """Approves a policy proposal with multi-party impact-tier enforcement."""
+    approver = request.headers.get("X-VIGIL-Approver")
+    if not approver or not approver.strip():
+        raise HTTPException(status_code=400, detail="Missing or empty X-VIGIL-Approver header")
+    approver = approver.strip()
+
+    registry: AgentRegistry = app.state.registry
+    raw = await registry.get_policy_proposal(proposal_id)
+    if not raw:
+        raise HTTPException(status_code=404, detail=f"Proposal '{proposal_id}' not found")
+
+    rec = PolicyProposalRecord.model_validate(raw)
+    now = time.time()
+
+    # Rule: An expired proposal returns 409 and its status becomes EXPIRED.
+    if rec.status == STATUS_PROPOSED and rec.is_expired(now):
+        rec.status = STATUS_EXPIRED
+        await registry.update_policy_proposal(rec.id, status=STATUS_EXPIRED)
+        _get_audit_ledger().append({
+            "event": "POLICY_PROPOSAL_EXPIRED",
+            "proposal_id": rec.id,
+            "agent_id": rec.agent_id,
+            "tool": rec.tool,
+            "ts": now,
+        })
+        raise HTTPException(status_code=409, detail="Proposal has expired")
+
+    if rec.status == STATUS_EXPIRED:
+        raise HTTPException(status_code=409, detail="Proposal has expired")
+
+    if rec.status == STATUS_REJECTED:
+        raise HTTPException(status_code=409, detail="Proposal has already been rejected")
+
+    approvals = rec.get_approvals()
+    required = rec.required_approvals_count()
+
+    # Rule: A repeat approval from the same approver changes nothing.
+    if approver in approvals:
+        out = rec.model_dump()
+        out["yaml_diff"] = generate_yaml_diff(rec)
+        out["approval_progress"] = rec.approval_progress_text()
+        out["required_approvals"] = required
+        return out
+
+    approvals.append(approver)
+    new_status = rec.status
+    decided_at = rec.decided_at
+    if len(approvals) >= required:
+        new_status = STATUS_APPROVED
+        decided_at = now
+
+    rec.status = new_status
+    rec.approvals_json = json.dumps(approvals)
+    rec.decided_at = decided_at
+    rec.version += 1
+
+    await registry.update_policy_proposal(
+        proposal_id=rec.id,
+        status=rec.status,
+        approvals_json=rec.approvals_json,
+        decided_at=rec.decided_at,
+        version=rec.version,
+    )
+
+    # Rule: Every state change writes a ledger entry that records the approver identity.
+    _get_audit_ledger().append({
+        "event": "POLICY_PROPOSAL_APPROVED" if new_status == STATUS_APPROVED else "POLICY_PROPOSAL_APPROVAL_ADDED",
+        "proposal_id": rec.id,
+        "approver": approver,
+        "approvals": approvals,
+        "approvals_count": len(approvals),
+        "required_approvals": required,
+        "status": new_status,
+        "agent_id": rec.agent_id,
+        "tool": rec.tool,
+        "impact_tier": rec.impact_tier,
+        "ts": now,
+    })
+
+    out = rec.model_dump()
+    out["yaml_diff"] = generate_yaml_diff(rec)
+    out["approval_progress"] = rec.approval_progress_text()
+    out["required_approvals"] = required
+    return out
+
+
+@app.post("/policies/proposals/{proposal_id}/reject", dependencies=[Depends(require_operator)])
+async def reject_policy_proposal(proposal_id: str, request: Request):
+    """Rejects a policy proposal."""
+    approver = request.headers.get("X-VIGIL-Approver")
+    if not approver or not approver.strip():
+        raise HTTPException(status_code=400, detail="Missing or empty X-VIGIL-Approver header")
+    approver = approver.strip()
+
+    registry: AgentRegistry = app.state.registry
+    raw = await registry.get_policy_proposal(proposal_id)
+    if not raw:
+        raise HTTPException(status_code=404, detail=f"Proposal '{proposal_id}' not found")
+
+    rec = PolicyProposalRecord.model_validate(raw)
+    now = time.time()
+
+    # Expiry check
+    if rec.status == STATUS_PROPOSED and rec.is_expired(now):
+        rec.status = STATUS_EXPIRED
+        await registry.update_policy_proposal(rec.id, status=STATUS_EXPIRED)
+        _get_audit_ledger().append({
+            "event": "POLICY_PROPOSAL_EXPIRED",
+            "proposal_id": rec.id,
+            "agent_id": rec.agent_id,
+            "tool": rec.tool,
+            "ts": now,
+        })
+        raise HTTPException(status_code=409, detail="Proposal has expired")
+
+    if rec.status == STATUS_EXPIRED:
+        raise HTTPException(status_code=409, detail="Proposal has expired")
+
+    if rec.status == STATUS_REJECTED:
+        out = rec.model_dump()
+        out["yaml_diff"] = generate_yaml_diff(rec)
+        out["approval_progress"] = rec.approval_progress_text()
+        out["required_approvals"] = rec.required_approvals_count()
+        return out
+
+    rec.status = STATUS_REJECTED
+    rec.decided_at = now
+    rec.version += 1
+
+    await registry.update_policy_proposal(
+        proposal_id=rec.id,
+        status=rec.status,
+        decided_at=rec.decided_at,
+        version=rec.version,
+    )
+
+    # Rule: Every state change writes a ledger entry that records the approver identity.
+    _get_audit_ledger().append({
+        "event": "POLICY_PROPOSAL_REJECTED",
+        "proposal_id": rec.id,
+        "approver": approver,
+        "status": STATUS_REJECTED,
+        "agent_id": rec.agent_id,
+        "tool": rec.tool,
+        "impact_tier": rec.impact_tier,
+        "ts": now,
+    })
+
+    out = rec.model_dump()
+    out["yaml_diff"] = generate_yaml_diff(rec)
+    out["approval_progress"] = rec.approval_progress_text()
+    out["required_approvals"] = rec.required_approvals_count()
+    return out
 
 
 @app.get("/audit")

@@ -6,6 +6,9 @@ import {
   approvalPreview,
   formatRelativeTime,
   formatAbsoluteTooltip,
+  proposalStatusBadge,
+  approvalProgressText,
+  canApproveProposal,
 } from '../utils/governanceBadges';
 import { calculateTrustScore } from '../components/AgentSidebar';
 import { PolicyDecision } from '../types';
@@ -196,4 +199,74 @@ describe('VIGIL Governance & UI Helpers (Vitest)', () => {
       expect(typeof tip).toBe('string');
     });
   });
+
+  describe('M4: Policy proposal status badges and approval progress', () => {
+    it('maps PROPOSED to blue badge', () => {
+      const res = proposalStatusBadge('PROPOSED');
+      expect(res.label).toBe('PROPOSED');
+      expect(res.badgeClass).toContain('badge-blue');
+    });
+
+    it('maps APPROVED to teal badge', () => {
+      const res = proposalStatusBadge('APPROVED');
+      expect(res.label).toBe('APPROVED');
+      expect(res.badgeClass).toContain('badge-teal');
+    });
+
+    it('maps REJECTED to red badge', () => {
+      const res = proposalStatusBadge('REJECTED');
+      expect(res.label).toBe('REJECTED');
+      expect(res.badgeClass).toContain('badge-red');
+    });
+
+    it('maps EXPIRED to gray badge', () => {
+      const res = proposalStatusBadge('EXPIRED');
+      expect(res.label).toBe('EXPIRED');
+      expect(res.badgeClass).toContain('badge-gray');
+    });
+
+    it('maps INSUFFICIENT_EVIDENCE to amber badge', () => {
+      const res = proposalStatusBadge('INSUFFICIENT_EVIDENCE');
+      expect(res.label).toBe('INSUFFICIENT EVIDENCE');
+      expect(res.badgeClass).toContain('badge-amber');
+    });
+
+    it('handles lowercase or unknown status safely', () => {
+      const res = proposalStatusBadge('proposed');
+      expect(res.label).toBe('PROPOSED');
+      expect(res.badgeClass).toContain('badge-blue');
+
+      const unknown = proposalStatusBadge('CUSTOM_STATUS');
+      expect(unknown.label).toBe('CUSTOM_STATUS');
+      expect(unknown.badgeClass).toContain('badge-gray');
+    });
+
+    it('formats approval-progress text correctly for various inputs', () => {
+      // 0 of 1
+      expect(approvalProgressText(0, 1)).toBe('0 of 1');
+      // 1 of 2
+      expect(approvalProgressText(1, 2)).toBe('1 of 2');
+      // array of approvers
+      expect(approvalProgressText(['alice@corp.internal'], 2)).toBe('1 of 2');
+      expect(approvalProgressText(['alice@corp.internal', 'bob@corp.internal'], 2)).toBe('2 of 2');
+      // JSON string of approvers
+      expect(approvalProgressText('["alice@corp.internal"]', 2)).toBe('1 of 2');
+      // string number
+      expect(approvalProgressText('1', '2')).toBe('1 of 2');
+      // empty / null
+      expect(approvalProgressText([], 1)).toBe('0 of 1');
+    });
+
+    it('determines proposal approvability correctly', () => {
+      expect(canApproveProposal('PROPOSED')).toBe(true);
+      expect(canApproveProposal('proposed')).toBe(true);
+      // INSUFFICIENT_EVIDENCE cannot be approved
+      expect(canApproveProposal('INSUFFICIENT_EVIDENCE')).toBe(false);
+      // Terminal states cannot be approved
+      expect(canApproveProposal('APPROVED')).toBe(false);
+      expect(canApproveProposal('REJECTED')).toBe(false);
+      expect(canApproveProposal('EXPIRED')).toBe(false);
+    });
+  });
 });
+

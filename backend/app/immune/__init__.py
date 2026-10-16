@@ -24,6 +24,19 @@ from .compiler import (
     compile_agent_policy,
     execute_compile,
 )
+from .workflow import (
+    PolicyProposalRecord,
+    ProposalConfig,
+    DEFAULT_PROPOSAL_CONFIG,
+    compute_impact_tier,
+    generate_yaml_diff,
+    STATUS_PROPOSED,
+    STATUS_APPROVED as WORKFLOW_STATUS_APPROVED,
+    STATUS_REJECTED as WORKFLOW_STATUS_REJECTED,
+    STATUS_EXPIRED as WORKFLOW_STATUS_EXPIRED,
+    TIER_HIGH,
+    TIER_LOW,
+)
 
 __all__ = [
     "ActionRecord",
@@ -46,4 +59,15 @@ __all__ = [
     "ApprovalError",
     "compile_agent_policy",
     "execute_compile",
+    "PolicyProposalRecord",
+    "ProposalConfig",
+    "DEFAULT_PROPOSAL_CONFIG",
+    "compute_impact_tier",
+    "generate_yaml_diff",
+    "STATUS_PROPOSED",
+    "WORKFLOW_STATUS_APPROVED",
+    "WORKFLOW_STATUS_REJECTED",
+    "WORKFLOW_STATUS_EXPIRED",
+    "TIER_HIGH",
+    "TIER_LOW",
 ]
