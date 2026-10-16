@@ -37,6 +37,13 @@ from .workflow import (
     TIER_HIGH,
     TIER_LOW,
 )
+from .verify import (
+    ArmorIQVerifier,
+    VerificationFailure,
+    sign_receipt,
+    verify_receipt,
+    FakeArmorIQClient,
+)
 
 __all__ = [
     "ActionRecord",
@@ -70,4 +77,10 @@ __all__ = [
     "WORKFLOW_STATUS_EXPIRED",
     "TIER_HIGH",
     "TIER_LOW",
+    "ArmorIQVerifier",
+    "VerificationFailure",
+    "sign_receipt",
+    "verify_receipt",
+    "FakeArmorIQClient",
 ]
+

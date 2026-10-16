@@ -1,0 +1,14 @@
+version: v1
+identity:
+  api_key: ${ARMORIQ_API_KEY}
+  user_id: ${ARMORIQ_USER_EMAIL}
+  agent_id: vigil-tools
+environment: production
+mcp_servers:
+  - id: vigil-tools
+    url: https://counter-stationery-occasional-bargain.trycloudflare.com/mcp
+    description: VIGIL customer tools MCP server (order_status, billing_database)
+policy:
+  allow:
+    - vigil-tools.order_status
+    - vigil-tools.billing_database
