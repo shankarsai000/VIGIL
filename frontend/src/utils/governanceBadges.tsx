@@ -221,3 +221,75 @@ export function formatAbsoluteTooltip(ts: number): string {
   return new Date(ms).toLocaleString();
 }
 
+/**
+ * M4: Policy Proposal status badges and approval progress.
+ */
+export interface ProposalStatusResult {
+  label: string;
+  badgeClass: string;
+}
+
+export function proposalStatusBadge(status: string): ProposalStatusResult {
+  const s = (status || '').toUpperCase().trim();
+  switch (s) {
+    case 'PROPOSED':
+      return {
+        label: 'PROPOSED',
+        badgeClass: 'badge badge-blue font-mono font-bold',
+      };
+    case 'APPROVED':
+      return {
+        label: 'APPROVED',
+        badgeClass: 'badge badge-teal font-mono font-bold',
+      };
+    case 'REJECTED':
+      return {
+        label: 'REJECTED',
+        badgeClass: 'badge badge-red font-mono font-bold',
+      };
+    case 'EXPIRED':
+      return {
+        label: 'EXPIRED',
+        badgeClass: 'badge badge-gray font-mono font-bold',
+      };
+    case 'INSUFFICIENT_EVIDENCE':
+      return {
+        label: 'INSUFFICIENT EVIDENCE',
+        badgeClass: 'badge badge-amber font-mono font-bold',
+      };
+    default:
+      return {
+        label: s || 'UNKNOWN',
+        badgeClass: 'badge badge-gray font-mono font-semibold',
+      };
+  }
+}
+
+export function approvalProgressText(
+  currentApprovals: number | string[] | any,
+  requiredApprovals: number | string = 1
+): string {
+  let count = 0;
+  if (Array.isArray(currentApprovals)) {
+    count = currentApprovals.length;
+  } else if (typeof currentApprovals === 'number') {
+    count = currentApprovals;
+  } else if (typeof currentApprovals === 'string') {
+    try {
+      const parsed = JSON.parse(currentApprovals);
+      count = Array.isArray(parsed) ? parsed.length : Number(currentApprovals) || 0;
+    } catch {
+      count = Number(currentApprovals) || 0;
+    }
+  }
+
+  const req = typeof requiredApprovals === 'number' ? requiredApprovals : (Number(requiredApprovals) || 1);
+  return `${count} of ${req}`;
+}
+
+export function canApproveProposal(status: string): boolean {
+  const s = (status || '').toUpperCase().trim();
+  return s === 'PROPOSED';
+}
+
+

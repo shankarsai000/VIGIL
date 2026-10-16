@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 from .db import create_database
+from ..immune.records import ActionRecord
 from .models import (
     AgentProfile,
     AgentEvent,
@@ -330,6 +331,54 @@ class AgentRegistry:
                 spoofing_likelihood REAL NOT NULL,
                 updated_at REAL NOT NULL
             )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS action_records (
+                record_id TEXT PRIMARY KEY,
+                trace_id TEXT NOT NULL,
+                tenant_id TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                ts REAL NOT NULL,
+                mcp_id TEXT,
+                tool TEXT,
+                event_type TEXT NOT NULL,
+                arg_shape TEXT NOT NULL,
+                provenance TEXT NOT NULL,
+                prev_tool TEXT,
+                observed_decision TEXT NOT NULL,
+                label TEXT NOT NULL,
+                label_source TEXT NOT NULL,
+                incident_id TEXT
+            )
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_action_records_agent_ts ON action_records (agent_id, ts)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_action_records_label ON action_records (label)
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS policy_proposals (
+                id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                mcp_id TEXT,
+                tool TEXT NOT NULL,
+                impact_tier TEXT NOT NULL,
+                replay_json TEXT NOT NULL,
+                assumptions_json TEXT NOT NULL,
+                approvals_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                expires_at REAL NOT NULL,
+                decided_at REAL,
+                version INTEGER NOT NULL DEFAULT 1
+            )
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_policy_proposals_status ON policy_proposals (status)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_policy_proposals_agent ON policy_proposals (agent_id)
             """,
         ]
 
@@ -1251,3 +1300,226 @@ class AgentRegistry:
             spoofing_likelihood=row["spoofing_likelihood"],
             updated_at=row["updated_at"],
         )
+
+    async def log_action_record(self, record: ActionRecord) -> None:
+        """Persists a single ActionRecord to the database."""
+        arg_shape_str = json.dumps(record.arg_shape)
+        await self.db.execute(
+            """
+            INSERT INTO action_records (
+                record_id, trace_id, tenant_id, agent_id, ts, mcp_id, tool,
+                event_type, arg_shape, provenance, prev_tool, observed_decision,
+                label, label_source, incident_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.record_id,
+                record.trace_id,
+                record.tenant_id,
+                record.agent_id,
+                record.ts,
+                record.mcp_id,
+                record.tool,
+                record.event_type,
+                arg_shape_str,
+                record.provenance,
+                record.prev_tool,
+                record.observed_decision,
+                record.label,
+                record.label_source,
+                record.incident_id,
+            ),
+        )
+
+    async def log_action_records_batch(self, records: List[ActionRecord]) -> None:
+        """High-throughput batch insertion of ActionRecords."""
+        if not records:
+            return
+        params_seq = [
+            (
+                r.record_id,
+                r.trace_id,
+                r.tenant_id,
+                r.agent_id,
+                r.ts,
+                r.mcp_id,
+                r.tool,
+                r.event_type,
+                json.dumps(r.arg_shape),
+                r.provenance,
+                r.prev_tool,
+                r.observed_decision,
+                r.label,
+                r.label_source,
+                r.incident_id,
+            )
+            for r in records
+        ]
+        sql = """
+            INSERT INTO action_records (
+                record_id, trace_id, tenant_id, agent_id, ts, mcp_id, tool,
+                event_type, arg_shape, provenance, prev_tool, observed_decision,
+                label, label_source, incident_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        await self.db.executemany(sql, params_seq)
+
+    async def get_action_records(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        agent_id: Optional[str] = None,
+        label: Optional[str] = None,
+        start_ts: Optional[float] = None,
+        end_ts: Optional[float] = None,
+    ) -> List[ActionRecord]:
+        """Queries action records with optional agent_id, label, and timestamp range filters."""
+        query = "SELECT * FROM action_records"
+        conditions = []
+        params = []
+        if agent_id:
+            conditions.append("agent_id = ?")
+            params.append(agent_id)
+        if label:
+            conditions.append("label = ?")
+            params.append(label)
+        if start_ts is not None:
+            conditions.append("ts >= ?")
+            params.append(start_ts)
+        if end_ts is not None:
+            conditions.append("ts <= ?")
+            params.append(end_ts)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += f" ORDER BY ts DESC LIMIT {int(limit)} OFFSET {int(offset)}"
+        rows = await self.db.fetch(query, tuple(params))
+        res = []
+        for r in rows:
+            shape_raw = r["arg_shape"]
+            shape_dict = json.loads(shape_raw) if isinstance(shape_raw, str) else shape_raw
+            res.append(
+                ActionRecord(
+                    record_id=r["record_id"],
+                    trace_id=r["trace_id"],
+                    tenant_id=r["tenant_id"],
+                    agent_id=r["agent_id"],
+                    ts=r["ts"],
+                    mcp_id=r["mcp_id"],
+                    tool=r["tool"],
+                    event_type=r["event_type"],
+                    arg_shape=shape_dict,
+                    provenance=r["provenance"],
+                    prev_tool=r["prev_tool"],
+                    observed_decision=r["observed_decision"],
+                    label=r["label"],
+                    label_source=r["label_source"],
+                    incident_id=r["incident_id"],
+                )
+            )
+        return res
+
+    async def confirm_incident_actions(
+        self,
+        incident_id: str,
+        agent_id: Optional[str] = None,
+        timestamp: Optional[float] = None,
+        window_seconds: float = 60.0,
+    ) -> int:
+        """Sets label ATTACK and label_source incident_confirmed on actions for an incident."""
+        await self.db.execute(
+            """
+            UPDATE action_records
+            SET label = 'ATTACK', label_source = 'incident_confirmed', incident_id = ?
+            WHERE incident_id = ?
+            """,
+            (incident_id, incident_id),
+        )
+
+        if agent_id and timestamp is not None:
+            min_ts = timestamp - window_seconds
+            max_ts = timestamp + window_seconds
+            await self.db.execute(
+                """
+                UPDATE action_records
+                SET label = 'ATTACK', label_source = 'incident_confirmed', incident_id = ?
+                WHERE agent_id = ? AND ts >= ? AND ts <= ? AND (incident_id IS NULL OR incident_id = '' OR incident_id = ?)
+                """,
+                (incident_id, agent_id, min_ts, max_ts, incident_id),
+            )
+
+        row = await self.db.fetchrow(
+            "SELECT COUNT(*) as cnt FROM action_records WHERE incident_id = ? AND label = 'ATTACK'",
+            (incident_id,),
+        )
+        return row["cnt"] if row else 0
+
+    async def create_policy_proposal(self, proposal: Any) -> Any:
+        """Stores a new policy proposal record."""
+        await self.db.execute(
+            """
+            INSERT INTO policy_proposals (
+                id, status, agent_id, mcp_id, tool, impact_tier,
+                replay_json, assumptions_json, approvals_json,
+                created_at, expires_at, decided_at, version
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                proposal.id,
+                proposal.status,
+                proposal.agent_id,
+                proposal.mcp_id,
+                proposal.tool,
+                proposal.impact_tier,
+                proposal.replay_json,
+                proposal.assumptions_json,
+                proposal.approvals_json,
+                proposal.created_at,
+                proposal.expires_at,
+                proposal.decided_at,
+                proposal.version,
+            ),
+        )
+        return proposal
+
+    async def get_policy_proposal(self, proposal_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves a policy proposal by its ID."""
+        row = await self.db.fetchrow("SELECT * FROM policy_proposals WHERE id = ?", (proposal_id,))
+        return dict(row) if row else None
+
+    async def list_policy_proposals(self) -> List[Dict[str, Any]]:
+        """Lists all policy proposals ordered by creation time descending."""
+        rows = await self.db.fetch("SELECT * FROM policy_proposals ORDER BY created_at DESC")
+        return [dict(r) for r in rows]
+
+    async def update_policy_proposal(
+        self,
+        proposal_id: str,
+        status: Optional[str] = None,
+        approvals_json: Optional[str] = None,
+        decided_at: Optional[float] = None,
+        version: Optional[int] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Updates proposal status, approvals, decided_at, or version."""
+        fields = []
+        params = []
+        if status is not None:
+            fields.append("status = ?")
+            params.append(status)
+        if approvals_json is not None:
+            fields.append("approvals_json = ?")
+            params.append(approvals_json)
+        if decided_at is not None:
+            fields.append("decided_at = ?")
+            params.append(decided_at)
+        if version is not None:
+            fields.append("version = ?")
+            params.append(version)
+        if not fields:
+            return await self.get_policy_proposal(proposal_id)
+        params.append(proposal_id)
+        await self.db.execute(
+            f"UPDATE policy_proposals SET {', '.join(fields)} WHERE id = ?",
+            tuple(params),
+        )
+        return await self.get_policy_proposal(proposal_id)
+

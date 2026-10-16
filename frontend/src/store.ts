@@ -19,7 +19,7 @@ export interface VigilState {
   selectedIncidentId: string | null;
 
   // New Observability State
-  activeTab: 'operations' | 'replay' | 'governance' | 'executive' | 'threat_intel';
+  activeTab: 'operations' | 'replay' | 'governance' | 'executive' | 'threat_intel' | 'proposals';
   selectedAgentId: string | null;
   simulationDockOpen: boolean;
   replayIncidentId: string | null;
@@ -50,7 +50,7 @@ export interface VigilState {
   setGateMode: (mode: string) => void;
 
   // New Actions
-  setActiveTab: (tab: 'operations' | 'replay' | 'governance' | 'executive' | 'threat_intel') => void;
+  setActiveTab: (tab: 'operations' | 'replay' | 'governance' | 'executive' | 'threat_intel' | 'proposals') => void;
   setSelectedAgentId: (id: string | null) => void;
   setSimulationDockOpen: (open: boolean) => void;
   setReplayIncidentId: (id: string | null) => void;
@@ -82,9 +82,11 @@ export const useVigilStore = create<VigilState>((set) => ({
   setGateMode: (gateMode) => set({ gateMode }),
 
   // Default values
-  activeTab: 'operations',
+  activeTab: (typeof window !== 'undefined' && (window.location.hash.includes('proposals') || window.location.search.includes('tab=proposals')))
+    ? 'proposals'
+    : 'operations',
   selectedAgentId: null,
-  simulationDockOpen: true,
+  simulationDockOpen: (typeof window !== 'undefined' && (window.location.search.includes('tab=proposals') || window.location.hash.includes('proposals'))) ? false : true,
   replayIncidentId: null,
   replayStep: 0,
   replayIsPlaying: false,

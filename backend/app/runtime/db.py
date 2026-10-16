@@ -69,6 +69,11 @@ class PostgresDatabase:
                 for statement in statements:
                     await conn.execute(statement)
 
+    async def executemany(self, sql: str, params_seq: Sequence[Sequence]) -> None:
+        converted = _convert_placeholders_postgres(sql)
+        async with self.acquire() as conn:
+            await conn.executemany(converted, params_seq)
+
 
 class SQLiteDatabase:
     """Lightweight aiosqlite wrapper for SQLite persistence."""
@@ -122,11 +127,20 @@ class SQLiteDatabase:
             await conn.commit()
             logger.info("All statements committed successfully")
 
+    async def executemany(self, sql: str, params_seq: Sequence[Sequence]) -> None:
+        async with self.acquire() as conn:
+            await conn.executemany(sql, params_seq)
+            await conn.commit()
+
 
 def create_database(database_url: str):
     """Factory function to create appropriate database instance based on URL."""
     if database_url.startswith("postgresql://") or database_url.startswith("postgres://"):
         return PostgresDatabase(database_url)
     else:
-        # Assume SQLite
-        return SQLiteDatabase(database_url)
+        path = database_url
+        if path.startswith("sqlite:///"):
+            path = path[10:]
+        elif path.startswith("sqlite://"):
+            path = path[9:]
+        return SQLiteDatabase(path)

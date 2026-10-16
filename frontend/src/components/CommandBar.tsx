@@ -139,6 +139,16 @@ export const CommandBar: React.FC = () => {
         >
           Threat Intelligence
         </button>
+        <button
+          onClick={() => setActiveTab('proposals')}
+          className={`px-4 py-1.5 text-xs font-semibold tracking-wider font-mono rounded-md uppercase whitespace-nowrap transition-all duration-200 ${
+            activeTab === 'proposals'
+              ? 'bg-vigil-teal text-black shadow-[0_0_12px_rgba(0,242,254,0.2)] font-bold'
+              : 'text-vigil-muted hover:text-white hover:bg-slate-800/40'
+          }`}
+        >
+          Policy Proposals
+        </button>
       </div>
 
       {/* Telemetry/System status bar */}

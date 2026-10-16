@@ -355,3 +355,22 @@ export interface ThreatIntelligenceData {
     edges: AttackGraphEdge[];
   };
 }
+
+export interface PolicyProposal {
+  id: string;
+  status: 'PROPOSED' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'INSUFFICIENT_EVIDENCE' | string;
+  agent_id: string;
+  mcp_id?: string | null;
+  tool: string;
+  impact_tier: 'LOW' | 'HIGH' | string;
+  replay_json: string;
+  assumptions_json: string;
+  approvals_json: string;
+  created_at: number;
+  expires_at: number;
+  decided_at?: number | null;
+  version: number;
+  yaml_diff?: string;
+  approval_progress?: string;
+  required_approvals?: number;
+}

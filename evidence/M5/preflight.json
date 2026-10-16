@@ -1,0 +1,15 @@
+{
+  "sdk_version": "0.6.10",
+  "mode": "live",
+  "raised_at": "invoke",
+  "exception_class": "PolicyBlockedException",
+  "exception_message": "Tool 'billing_database' denied by OPA: policy_constraints_not_satisfied",
+  "exception_attributes": {
+    "enforcement_action": "block",
+    "reason": "policy_constraints_not_satisfied",
+    "metadata": null
+  },
+  "token_issued": true,
+  "token_id": "2710df0254394d5bb014b76c54a8fc69",
+  "plan_hash": "a739b868e0825ff3123c1ece4d5b3384092d43bbe7f62fef2795e3212eaf8f1e"
+}

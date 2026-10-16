@@ -18,7 +18,8 @@ import {
   RemediationChain,
   BehavioralFootprintScore,
   RemediationScript,
-  TamperProofIncident
+  TamperProofIncident,
+  PolicyProposal
 } from './types';
 
 // Operator key for write endpoints and the WebSocket. Set VITE_VIGIL_OPERATOR_KEY in frontend/.env.local.
@@ -375,6 +376,75 @@ export class VIGILClient {
   async getHealth(): Promise<{ status: string; gate_mode?: string; armoriq_mode?: string; active_agents?: number }> {
     const res = await fetch('/health');
     if (!res.ok) throw new Error(`Health check failed: ${res.statusText}`);
+    return res.json();
+  }
+
+  async getPolicyProposals(): Promise<PolicyProposal[]> {
+    const res = await fetch('/policies/proposals');
+    if (!res.ok) throw new Error(`Failed to fetch policy proposals: ${res.statusText}`);
+    return res.json();
+  }
+
+  async getPolicyProposal(id: string): Promise<PolicyProposal> {
+    const res = await fetch(`/policies/proposals/${id}`);
+    if (!res.ok) throw new Error(`Failed to fetch policy proposal ${id}: ${res.statusText}`);
+    return res.json();
+  }
+
+  async createPolicyProposal(data: {
+    agent_id: string;
+    tool: string;
+    window_start: number;
+    window_end: number;
+  }): Promise<PolicyProposal> {
+    const res = await fetch('/policies/proposals', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...operatorHeaders(),
+      },
+      body: JSON.stringify(data),
+    });
+    this._handleWriteResponse(res, `create policy proposal for ${data.agent_id}/${data.tool}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `Failed to create policy proposal: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async approvePolicyProposal(id: string, approver: string): Promise<PolicyProposal> {
+    const res = await fetch(`/policies/proposals/${id}/approve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VIGIL-Approver': approver,
+        ...operatorHeaders(),
+      },
+    });
+    this._handleWriteResponse(res, `approve policy proposal ${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `Failed to approve policy proposal: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async rejectPolicyProposal(id: string, approver: string, reason?: string): Promise<PolicyProposal> {
+    const res = await fetch(`/policies/proposals/${id}/reject`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-VIGIL-Approver': approver,
+        ...operatorHeaders(),
+      },
+      body: JSON.stringify({ reason: reason || 'Rejected by operator' }),
+    });
+    this._handleWriteResponse(res, `reject policy proposal ${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `Failed to reject policy proposal: ${res.statusText}`);
+    }
     return res.json();
   }
 }

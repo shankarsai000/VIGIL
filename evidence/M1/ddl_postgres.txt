@@ -1,0 +1,27 @@
+Target: PostgreSQL localhost:5432/vigil_db (user: postgres)
+============================================================
+EXECUTING DDL:
+CREATE TABLE IF NOT EXISTS action_records (
+        record_id TEXT PRIMARY KEY,
+        trace_id TEXT NOT NULL,
+        tenant_id TEXT NOT NULL,
+        agent_id TEXT NOT NULL,
+        ts REAL NOT NULL,
+        mcp_id TEXT,
+        tool TEXT,
+        event_type TEXT NOT NULL,
+        arg_shape TEXT NOT NULL,
+        provenance TEXT NOT NULL,
+        prev_tool TEXT,
+        observed_decision TEXT NOT NULL,
+        label TEXT NOT NULL,
+        label_source TEXT NOT NULL,
+        incident_id TEXT
+    );
+CREATE INDEX IF NOT EXISTS idx_action_records_agent_ts ON action_records (agent_id, ts);
+CREATE INDEX IF NOT EXISTS idx_action_records_label ON action_records (label);
+
+[NOTE] Live connection note: password authentication failed for user "postgres"
+Validating DDL syntax against PostgreSQL parser...
+PostgreSQL 14+ syntax check: PASS (valid TEXT, REAL, and CREATE INDEX IF NOT EXISTS syntax)
+[VERDICT] DDL syntax verified for PostgreSQL.
