@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Incident, AgentStatus } from '../types';
 import { MetricBar } from './MetricBar';
 import { useVigilStore } from '../store';
@@ -16,6 +16,18 @@ export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose 
   const [releaseReason, setReleaseReason] = useState('');
   const [releaseError, setReleaseError] = useState<string | null>(null);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [denialExplanation, setDenialExplanation] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (incident?.policy_decision === 'DENIED' || incident?.incident_id) {
+      const traceId = incident.incident_id;
+      vigilClient.getDenialExplanation(traceId)
+        .then((data) => setDenialExplanation(data))
+        .catch(() => setDenialExplanation({ source: 'unknown', policy_driven: false }));
+    } else {
+      setDenialExplanation(null);
+    }
+  }, [incident]);
 
   if (!incident) return null;
 
@@ -110,6 +122,43 @@ export const IncidentPanel: React.FC<IncidentPanelProps> = ({ incident, onClose 
               </p>
             </div>
           </div>
+
+          {/* Explainable Policy Denial Provenance */}
+          {denialExplanation && (
+            <div className="space-y-2">
+              <div className="text-[10px] text-vigil-muted uppercase tracking-wider font-bold">Policy Denial Provenance</div>
+              <div className="p-3 bg-vigil-bg2/40 border border-vigil-border/60 rounded-xl space-y-2 font-mono text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-vigil-muted">Source:</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    denialExplanation.policy_driven ? 'bg-vigil-teal/20 text-vigil-teal' : 'bg-gray-800 text-gray-400'
+                  }`}>
+                    {denialExplanation.source === 'policy_immune' ? 'POLICY IMMUNE (ARMORIQ)' : 'SOURCE: UNKNOWN'}
+                  </span>
+                </div>
+                {denialExplanation.policy_driven && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-vigil-muted">Rule ID:</span>
+                      <span className="text-white">{denialExplanation.rule_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-vigil-muted">Proposal ID:</span>
+                      <span className="text-white">{denialExplanation.proposal_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-vigil-muted">Replay Coverage:</span>
+                      <span className="text-white">{(denialExplanation.coverage * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-vigil-muted">False-Block Bound:</span>
+                      <span className="text-white">{denialExplanation.false_block_bound}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Combined Detection Layers Breakdown */}
           <div className="space-y-3">

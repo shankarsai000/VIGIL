@@ -1,0 +1,24 @@
+{
+  "timestamp": 1792220914.629,
+  "sdk_version": "0.6.10",
+  "mode": "live",
+  "agent_id": "customer-bot",
+  "mcp_id": "vigil-tools",
+  "denied_tool": "billing_database",
+  "mint_time_behavior": {
+    "raised": false,
+    "token_issued": true,
+    "token_id": "7ea57cebab814e5ab738434378d67746",
+    "plan_hash": "2c23c10d894052614fe53baeca81822d756c9930f4f29df91fa8c9edc1bb15c9"
+  },
+  "invoke_time_behavior": {
+    "raised": true,
+    "exception_class": "PolicyBlockedException",
+    "exception_message": "Tool 'billing_database' denied by OPA: policy_constraints_not_satisfied",
+    "enforcement_action": "block",
+    "reason": "policy_constraints_not_satisfied",
+    "layer": "opa"
+  },
+  "raised_at": "invoke",
+  "finding": "INVOKE_TIME_ENFORCEMENT"
+}

@@ -12,7 +12,6 @@ export const CommandBar: React.FC = () => {
     lastWsErrorTime,
     incidents,
     agents,
-    telegramStatus,
     approvalChannelStatus,
     setApprovalChannelStatus,
     pendingApprovals,

@@ -131,7 +131,7 @@ export const ApprovalChannelPanel: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] font-mono text-slate-400 mt-0.5">
-              Verified corporate identities · Tamper-proof webhook verification
+              Verified corporate identities · Tamper-proof webhook verification {isRefreshing ? '(syncing...)' : ''}
             </p>
           </div>
         </div>
@@ -306,7 +306,7 @@ export const ApprovalChannelPanel: React.FC = () => {
                         </span>
                       </div>
                       <div className="text-[10px] text-slate-500 mt-1">
-                        ID: {req.request_id} · Decided by: {req.email || req.resolved_by || 'Unknown'}
+                        ID: {req.request_id} · Decided by: {(req as any).email || req.resolved_by || 'Unknown'}
                       </div>
                     </div>
                     {req.resolved_at && (

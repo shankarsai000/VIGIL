@@ -467,6 +467,12 @@ export class VIGILClient {
     }
     return res.json();
   }
+
+  async getDenialExplanation(traceId: string): Promise<any> {
+    const res = await fetch(`/denials/${traceId}`);
+    if (!res.ok) throw new Error(`Failed to fetch denial explanation for ${traceId}: ${res.statusText}`);
+    return res.json();
+  }
 }
 
 function logger(msg: string) {

@@ -1424,6 +1424,33 @@ class AgentRegistry:
             )
         return res
 
+    async def get_action_record_by_trace_id(self, trace_id: str) -> Optional[ActionRecord]:
+        """Looks up a single action record by its trace_id."""
+        query = "SELECT * FROM action_records WHERE trace_id = ? LIMIT 1"
+        rows = await self.db.fetch(query, (trace_id,))
+        if not rows:
+            return None
+        r = rows[0]
+        shape_raw = r["arg_shape"]
+        shape_dict = json.loads(shape_raw) if isinstance(shape_raw, str) else shape_raw
+        return ActionRecord(
+            record_id=r["record_id"],
+            trace_id=r["trace_id"],
+            tenant_id=r["tenant_id"],
+            agent_id=r["agent_id"],
+            ts=r["ts"],
+            mcp_id=r["mcp_id"],
+            tool=r["tool"],
+            event_type=r["event_type"],
+            arg_shape=shape_dict,
+            provenance=r["provenance"],
+            prev_tool=r["prev_tool"],
+            observed_decision=r["observed_decision"],
+            label=r["label"],
+            label_source=r["label_source"],
+            incident_id=r["incident_id"],
+        )
+
     async def confirm_incident_actions(
         self,
         incident_id: str,

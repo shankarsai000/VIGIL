@@ -658,6 +658,71 @@ async def get_policy_proposal(proposal_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/denials/{trace_id}")
+async def get_denial_explanation(trace_id: str):
+    """Explains an ArmorIQ or policy denial using only stored proposals and receipts.
+
+    Returns rule ID, proposal ID, coverage, false-block bound, replay window,
+    and trace ID. If no matching proposal exists, returns source: 'unknown'
+    and policy_driven: false.
+    """
+    try:
+        registry: AgentRegistry = app.state.registry
+        record = await registry.get_action_record_by_trace_id(trace_id)
+        if not record or record.observed_decision != "DENY":
+            return {
+                "trace_id": trace_id,
+                "source": "unknown",
+                "policy_driven": False,
+                "message": "Denial has no matching action record with observed_decision='DENY'."
+            }
+
+        # Search stored proposals for this agent and tool
+        raw_proposals = await registry.list_policy_proposals()
+        matched = None
+        for r in raw_proposals:
+            p = PolicyProposalRecord.model_validate(r)
+            if p.status == STATUS_APPROVED and p.agent_id == record.agent_id and p.tool == record.tool:
+                if record.mcp_id and p.mcp_id and record.mcp_id != p.mcp_id:
+                    continue
+                matched = p
+                break
+
+        if not matched:
+            return {
+                "trace_id": trace_id,
+                "agent_id": record.agent_id,
+                "tool": record.tool,
+                "source": "unknown",
+                "policy_driven": False,
+                "message": "No matching approved policy proposal found for this denial."
+            }
+
+        replay = json.loads(matched.replay_json) if matched.replay_json else {}
+        return {
+            "trace_id": trace_id,
+            "rule_id": f"rule-{matched.agent_id}-{matched.tool}",
+            "proposal_id": matched.id,
+            "agent_id": matched.agent_id,
+            "mcp_id": matched.mcp_id,
+            "tool": matched.tool,
+            "coverage": replay.get("coverage", 1.0),
+            "false_block_bound": replay.get("false_block_upper", 0.0),
+            "replay_window": {
+                "benign_total": replay.get("benign_total", 0),
+                "attacks_total": replay.get("attacks_total", 0),
+                "attacks_blocked": replay.get("attacks_blocked", 0),
+            },
+            "source": "policy_immune",
+            "policy_driven": True,
+            "impact_tier": matched.impact_tier,
+            "decided_at": matched.decided_at,
+        }
+    except Exception as e:
+        logger.error(f"Error explaining denial {trace_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/policies/proposals", status_code=201, dependencies=[Depends(require_operator)])
 async def create_policy_proposal(req: CreateProposalRequest):
     """Runs replay on recorded traffic and creates a policy proposal if and only if replay ACCEPTs."""
