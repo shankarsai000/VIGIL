@@ -1,0 +1,145 @@
+{
+  "timestamp": 1729170042.0,
+  "seed": 42,
+  "total_scenarios_evaluated": 1080,
+  "ablations": {
+    "E0": {
+      "ablation": "E0",
+      "attack_trials_total": 80,
+      "attack_detected": 0,
+      "detection_rate": 0.0,
+      "detection_rate_95_ci": [
+        0.0,
+        0.0458
+      ],
+      "events_to_first_alert_mean": null,
+      "benign_trials_total": 1000,
+      "observed_false_blocks": 0,
+      "false_block_bound_95_upper": 0.002991,
+      "containment_actions_per_1000_benign": 0.0,
+      "components_active": {
+        "ewma_rules": true,
+        "lineage_taint": false,
+        "budgets": false,
+        "canaries": false,
+        "output_scanning_and_pinning": false,
+        "antibody_synthesis": false
+      }
+    },
+    "E1": {
+      "ablation": "E1",
+      "attack_trials_total": 80,
+      "attack_detected": 20,
+      "detection_rate": 0.25,
+      "detection_rate_95_ci": [
+        0.1681,
+        0.3548
+      ],
+      "events_to_first_alert_mean": 3.0,
+      "benign_trials_total": 1000,
+      "observed_false_blocks": 0,
+      "false_block_bound_95_upper": 0.002991,
+      "containment_actions_per_1000_benign": 0.0,
+      "components_active": {
+        "ewma_rules": true,
+        "lineage_taint": true,
+        "budgets": false,
+        "canaries": false,
+        "output_scanning_and_pinning": false,
+        "antibody_synthesis": false
+      }
+    },
+    "E2": {
+      "ablation": "E2",
+      "attack_trials_total": 80,
+      "attack_detected": 40,
+      "detection_rate": 0.5,
+      "detection_rate_95_ci": [
+        0.393,
+        0.607
+      ],
+      "events_to_first_alert_mean": 4.0,
+      "benign_trials_total": 1000,
+      "observed_false_blocks": 0,
+      "false_block_bound_95_upper": 0.002991,
+      "containment_actions_per_1000_benign": 0.0,
+      "components_active": {
+        "ewma_rules": true,
+        "lineage_taint": true,
+        "budgets": true,
+        "canaries": false,
+        "output_scanning_and_pinning": false,
+        "antibody_synthesis": false
+      }
+    },
+    "E3": {
+      "ablation": "E3",
+      "attack_trials_total": 80,
+      "attack_detected": 40,
+      "detection_rate": 0.5,
+      "detection_rate_95_ci": [
+        0.393,
+        0.607
+      ],
+      "events_to_first_alert_mean": 4.0,
+      "benign_trials_total": 1000,
+      "observed_false_blocks": 0,
+      "false_block_bound_95_upper": 0.002991,
+      "containment_actions_per_1000_benign": 0.0,
+      "components_active": {
+        "ewma_rules": true,
+        "lineage_taint": true,
+        "budgets": true,
+        "canaries": true,
+        "output_scanning_and_pinning": false,
+        "antibody_synthesis": false
+      }
+    },
+    "E4": {
+      "ablation": "E4",
+      "attack_trials_total": 80,
+      "attack_detected": 80,
+      "detection_rate": 1.0,
+      "detection_rate_95_ci": [
+        0.9542,
+        1.0
+      ],
+      "events_to_first_alert_mean": 2.5,
+      "benign_trials_total": 1000,
+      "observed_false_blocks": 0,
+      "false_block_bound_95_upper": 0.002991,
+      "containment_actions_per_1000_benign": 0.0,
+      "components_active": {
+        "ewma_rules": true,
+        "lineage_taint": true,
+        "budgets": true,
+        "canaries": true,
+        "output_scanning_and_pinning": true,
+        "antibody_synthesis": false
+      }
+    },
+    "E5": {
+      "ablation": "E5",
+      "attack_trials_total": 80,
+      "attack_detected": 80,
+      "detection_rate": 1.0,
+      "detection_rate_95_ci": [
+        0.9542,
+        1.0
+      ],
+      "events_to_first_alert_mean": 2.5,
+      "benign_trials_total": 1000,
+      "observed_false_blocks": 0,
+      "false_block_bound_95_upper": 0.002991,
+      "containment_actions_per_1000_benign": 0.0,
+      "components_active": {
+        "ewma_rules": true,
+        "lineage_taint": true,
+        "budgets": true,
+        "canaries": true,
+        "output_scanning_and_pinning": true,
+        "antibody_synthesis": true
+      }
+    }
+  }
+}
