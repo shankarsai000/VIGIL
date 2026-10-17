@@ -68,7 +68,7 @@ const App: React.FC = () => {
         case WSEventType.INCIDENT_DETECTED:
           addIncident(event.payload as Incident);
           // Refetch approvals in case it was a new approval card request
-          vigilClient.getTelegramApprovals().then(setPendingApprovals).catch(console.error);
+          vigilClient.getApprovals().then(setPendingApprovals).catch(console.error);
           break;
         case WSEventType.EXPLANATION_READY:
           updateIncidentExplanation(
@@ -82,7 +82,7 @@ const App: React.FC = () => {
         case WSEventType.TELEGRAM_STATUS:
           setTelegramStatus(event.payload as any);
           // Refetch approvals on status change
-          vigilClient.getTelegramApprovals().then(setPendingApprovals).catch(console.error);
+          vigilClient.getApprovals().then(setPendingApprovals).catch(console.error);
           break;
         case WSEventType.GOVERNANCE_UPDATE:
           const govPayload = event.payload as any;
@@ -90,7 +90,7 @@ const App: React.FC = () => {
             updateIncidentState(govPayload.incident_id, govPayload.new_state as IncidentState);
           }
           // Refetch approvals to update pending list
-          vigilClient.getTelegramApprovals().then(setPendingApprovals).catch(console.error);
+          vigilClient.getApprovals().then(setPendingApprovals).catch(console.error);
           break;
         case 'INIT' as any:
           if (event.payload.telegramStatus) setTelegramStatus(event.payload.telegramStatus);
@@ -118,7 +118,7 @@ const App: React.FC = () => {
         try {
           const loadedTelStatus = await vigilClient.getTelegramStatus();
           setTelegramStatus(loadedTelStatus);
-          const loadedApprovals = await vigilClient.getTelegramApprovals();
+          const loadedApprovals = await vigilClient.getApprovals();
           setPendingApprovals(loadedApprovals);
           const loadedUsers = await vigilClient.getTelegramUsers();
           setTelegramUsers(loadedUsers);

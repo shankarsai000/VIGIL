@@ -1,86 +1,116 @@
-# VIGIL v2 — End-to-End Demo Script & Expected Outputs
+# VIGIL Policy Immune System — Live Demonstration Script
 
-This document records the exact expected walkthrough and terminal outputs when running `scripts/demo.py` for evaluators and hackathon judges.
-
----
-
-## Prerequisites
-1. **Virtual Environment**: Active Python virtualenv with `armoriq-sdk==0.6.10` (`.venv\Scripts\python.exe`).
-2. **Environment Variables**: `.env` populated with valid `ARMORIQ_API_KEY`, `ARMORIQ_USER_EMAIL`, `OPERATOR_API_KEY`, and `CONTAINMENT_SECRET`.
-3. **Background Daemons**:
-   - VIGIL Core Backend: `http://127.0.0.1:8000`
-   - Containment FastMCP Server: `http://127.0.0.1:8790`
-   - Active Cloudflare Tunnel forwarding port 8790 to trycloudflare.com
+A step-by-step walkthrough of the VIGIL autonomous policy immune lifecycle, demonstrating how confirmed security incidents are transformed into mathematically proven, cryptographically signed, and platform-enforced ArmorIQ policies in under two minutes.
 
 ---
 
-## Running the Demo
-```powershell
-.venv\Scripts\python.exe scripts/demo.py
+## Prerequisites & Launch
+
+### 1. Launch the End-to-End Scripted Demonstration
+To run the automated governance lifecycle end-to-end:
+```bash
+python scripts/demo_policy_loop.py --offline
 ```
+*(For live platform enforcement with ArmorIQ credentials, run without `--offline`: `python scripts/demo_policy_loop.py --live`).*
 
----
+### 2. Optional: Launch the Interactive Web Dashboard
+```bash
+# Terminal 1: Backend API
+uvicorn backend.main:app --port 8000
 
-## Expected Terminal Output Walkthrough
-
-```text
-=============================================================================
-  🛡️  VIGIL v2 — Autonomous Multi-Agent Defense & ArmorIQ Governance Layer
-=============================================================================
-
-[*] Environment: ArmorIQ LIVE Mode
-[*] Principal:   user...@[domain]
-[*] Identity:    vigil-containment-v2
-[*] Proxy:       https://customer-proxy.armoriq.ai
-
-===========================================================================
-  1. PREFLIGHT CONNECTIVITY & HEALTH CHECKS
-===========================================================================
-  [✓] VIGIL Backend Core: HTTP 200 OK (http://127.0.0.1:8000)
-  [✓] Containment FastMCP Server: HTTP 200 OK (http://127.0.0.1:8790)
-
-===========================================================================
-  2. LIVE GOVERNED CONTAINMENT ACTUATION
-===========================================================================
-  Triggering live policy-gated quarantine against ArmorIQ Customer Proxy...
-  [✓] Plan Captured & Signed:  ID=71405651-1479-4a4c-963f-22b79fe4beb8
-  [✓] Intent Token Minted:     Token=ba30898177874d2b... (OPA Validated)
-  [✓] Actuation Status:        success in 4442.09ms
-  [✓] Response Trace:          {'content': [{'type': 'text', 'text': '{\n  "status": "quarantined",\n  "agent_id": "customer_bot"\n}'}], 'isError': False}
-
-===========================================================================
-  3. LIVE FAIL-CLOSED POLICY ENFORCEMENT (DENY)
-===========================================================================
-  Attempting unauthorized execution of 'drop_database' on production proxy...
-  [✓] Policy Block Verified:   Tool 'drop_database' denied by OPA: policy_constraints_not_satisfied
-  [✓] Exception Class:         armoriq_sdk.exceptions.PolicyBlockedException
-  [✓] Enforcement Action:      block
-
-===========================================================================
-  4. CRYPTOGRAPHIC AUDIT LEDGER INTEGRITY
-===========================================================================
-  [✓] Ledger File:             backend\storage\audit_ledger.jsonl
-  [✓] Verified Chain Length:   2308 blocks
-  [✓] Head Digest:             d4c353959bcbd9ac2290af043ac3685ade4d0535fd9eaa23adcdbd9e297a2210
-  [✓] Integrity Status:        ok=True (Zero gaps, zero reordering, zero edits)
-
-===========================================================================
-  5. CLOSED-LOOP INCIDENT-TO-POLICY SYNTHESIS
-===========================================================================
-  Simulating attack on customer-bot: 2 attack calls on billing_database, 3 benign calls on order_status...
-  [✓] Synthesized Rule:        DENY vigil-tools.billing_database
-  [✓] Protection Verification: Blocks 2 attack calls, 0 benign regressions
-  [✓] Protected Tools:         order_status preserved without regression
-
-===========================================================================
-  🏆 DEMO COMPLETE: ALL PLATFORM ENFORCEMENTS & INTEGRITY CHECKS PASSED
-===========================================================================
+# Terminal 2: Governance UI
+cd frontend && npm run dev
 ```
+Open your browser to: [http://localhost:5173/?tab=proposals](http://localhost:5173/?tab=proposals)
 
 ---
 
-## Verifying Each Assertion
-- **Step 2 (Quarantine Actuation)**: Traces through ArmorIQ customer proxy -> Cloudflare Tunnel -> FastMCP server -> VIGIL internal quarantine endpoint. Confirms `customer_bot` is quarantined in memory and state.
-- **Step 3 (Platform Denial)**: Demonstrates fail-closed semantics where an unauthorized tool call triggers `PolicyBlockedException` directly at the policy proxy.
-- **Step 4 (Cryptographic Ledger)**: Demonstrates SHA-256 hash-chain verification with zero gaps or mutations.
-- **Step 5 (Synthesis)**: Replay validation prevents false positives while blocking zero benign operations.
+## On-Screen Steps in Order
+
+### Step 1: Incident Ingestion & Labelled Telemetry
+- **On-Screen Action**: Script ingests recorded agent traffic for `customer-bot`.
+- **What to Observe**:
+  - 620 historical records are loaded as `BENIGN_ASSUMED` baseline.
+  - An exfiltration attempt triggers incident `inc-2026-10-m6-exfil` with 12 confirmed `ATTACK` records on `vigil-tools.billing_database`.
+  - Action records strictly enforce structural redaction (argument shapes only, zero raw queries or plaintext secrets stored).
+- **Evidence Reference**: [`evidence/M1/action_traces_sample.jsonl`](file:///d:/vigil-v2/vigil-v2/evidence/M1/action_traces_sample.jsonl)
+
+---
+
+### Step 2: Candidate Rule Grouping
+- **On-Screen Action**: VIGIL's candidate extractor groups attack records by `(agent_id, tool)` family.
+- **What to Observe**:
+  - Extracts candidate deny rule: `CandidateRule(agent_id='customer-bot', mcp_id='vigil-tools', tool='billing_database')`.
+  - Families that only separate by argument value are classified as `NOT_ENFORCEABLE` (ArmorIQ enforces tool-level globs, not arbitrary regex arguments).
+- **Evidence Reference**: [`evidence/M3/customer-bot.manifest.json`](file:///d:/vigil-v2/vigil-v2/evidence/M3/customer-bot.manifest.json)
+
+---
+
+### Step 3: Counterfactual Replay & Clopper-Pearson Statistical Bound
+- **On-Screen Action**: The pure replay engine evaluates the candidate against the historical record.
+- **What to Observe**:
+  - The replay table displays:
+    ```text
+    +-----------------------------------------------------------------------+
+    | Metric                      | Observed Value | Mathematical Criterion |
+    +-----------------------------------------------------------------------+
+    | Attacks Observed            | 12             | Total incident vectors |
+    | Attacks Blocked             | 12             | Target tool matches    |
+    | Attack Coverage             |         100.0% | >= 90.0% required      |
+    | Benign Baseline             | 620            | >= 600 required        |
+    | Benign False Blocks         | 0              | Metric to MINIMISE     |
+    | False-Block Rate (Point)    |          0.00% | Empirical rate         |
+    | 95% Clopper-Pearson Bound   |         0.482% | <= 0.500% required     |
+    | REPLAY VERDICT              | ACCEPT         | SAFE TO PROPOSE        |
+    +-----------------------------------------------------------------------+
+    ```
+  - Exact one-sided statistical bound $\bar{p}_{0.95} = 0.482\% \le 0.500\%$.
+  - Rule is classified as `ACCEPT` (proven safe: zero autoimmune disruption).
+- **Evidence Reference**: [`evidence/M2/replay_report_accept.json`](file:///d:/vigil-v2/vigil-v2/evidence/M2/replay_report_accept.json)
+
+---
+
+### Step 4: Governance Approval via Slack Channel
+- **On-Screen Action**: Review and authorize governance actions from Slack (or the Approval Channel UI panel).
+- **What to Observe**:
+  - Proposal is delivered to `#vigil-approvals` Slack channel via Block Kit interactive card.
+  - Card displays title, kind, tier, summary fields, replay numbers (Coverage: 100.0%, 95% Clopper-Pearson bound: 0.482%), expiration countdown, dashboard deep-link, and single-use `Approve` / `Reject` buttons.
+  - Interactive buttons carry server-issued nonces (zero raw arguments, zero secrets, zero decision state in payload).
+  - High-impact tier proposal strictly enforces a two-person approval policy on the server:
+    1. First Approver (`sec-lead@corp.internal` in Slack): Clicks Approve. Status remains `PROPOSED` (1 of 2).
+    2. Second Approver (`compliance-officer@corp.internal` in Slack): Clicks Approve. Status transitions to `APPROVED` (2 of 2).
+  - Separation of duties: proposal creator cannot approve their own proposal.
+  - Duplicate approvals are ignored idempotently without secondary execution.
+  - Slack message is dynamically updated via `chat.update` with outcome, approver identities, and timestamp.
+  - Every callback accepted/rejected and decision is committed to the hash-chained audit ledger.
+- **Evidence Reference**: [`evidence/SLACK-1/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/report.md), [`evidence/SLACK-1/offline.txt`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/offline.txt)
+
+---
+
+### Step 5: ArmorIQ Verification in Sandbox
+- **On-Screen Action**: Sandbox agent executes verification calls under the signed intent envelope.
+- **What to Observe**:
+  - 3 attack calls against `billing_database`: All 3 are **DENIED** with `PolicyBlockedException` at the OPA platform layer (`layer: "opa"`).
+  - 3 benign calls on `order_status`: All 3 are **ALLOWED** and execute successfully.
+  - Platform denial is proven directly in code before production promotion.
+- **Evidence Reference**: [`evidence/M5/live_verification.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_verification.json)
+
+---
+
+### Step 6: Ed25519 Signed Receipt & Hash-Chained Audit Ledger
+- **On-Screen Action**: Receipt generation and ledger verification.
+- **What to Observe**:
+  - Verifier issues receipt signed with Ed25519 (private key lives outside repository at `~/.vigil/receipt_ed25519.key`).
+  - Cryptographic signature validates with public key; tampered receipts fail.
+  - Receipt digest is appended to the tamper-evident ledger at [`backend/storage/audit_ledger.jsonl`](file:///d:/vigil-v2/vigil-v2/backend/storage/audit_ledger.jsonl).
+- **Evidence Reference**: [`evidence/M5/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_receipt.json)
+
+---
+
+### Step 7: Cross-Tenant Shared Signatures
+- **On-Screen Action**: Export & import of abstract security motifs.
+- **What to Observe**:
+  - Export: Emits signed motif bundle `CATEGORY:secret_read -> CATEGORY:external_send` with bucketed support (`"medium"`).
+  - Privacy: Zero tool names, agent IDs, tenant IDs, argument values, or timestamps are exposed.
+  - Import: Evaluates imported motif against local traffic; local benign contradictions are rejected immediately without writing config.
+- **Evidence Reference**: [`evidence/M6/demo_output.txt`](file:///d:/vigil-v2/vigil-v2/evidence/M6/demo_output.txt)

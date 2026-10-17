@@ -77,6 +77,15 @@ from .app.immune.workflow import (
 )
 from .app.immune.replay import CandidateRule, evaluate_candidate_rule
 from .app.immune.records import ActionRecord
+from .app.evidence.bundle import EvidenceVault
+from .app.channels.base import (
+    ApprovalRequest as ChannelApprovalRequest,
+    RequestKind,
+    DecisionAction,
+    CallbackRejected,
+)
+from .app.channels.slack import SlackApprovalChannel
+from .app.runtime.models import GovernanceAction
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -418,6 +427,15 @@ async def health():
                 logger.warning(f"Failed to parse deployment metadata: {ex}")
                 
         gate_mode = getattr(getattr(app.state, "gate", None), "mode", settings.armoriq_mode)
+        approval_channel_status = "disabled"
+        if settings.slack_bot_token and settings.slack_signing_secret:
+            approval_channel_status = "connected" if settings.slack_mode == "socket" else "configured"
+        approval_channel = {
+            "channel": "slack",
+            "status": approval_channel_status,
+            "mode": settings.slack_mode,
+            "configured": bool(settings.slack_bot_token and settings.slack_signing_secret),
+        }
         return {
             "status": "healthy",
             "timestamp": time.time(),
@@ -425,6 +443,7 @@ async def health():
             "deployment_info": deployment_info,
             "gate_mode": gate_mode,
             "armoriq_mode": gate_mode,
+            "approval_channel": approval_channel,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Health check failed: {e}")
@@ -559,6 +578,9 @@ class CreateProposalRequest(BaseModel):
 
 
 def _get_audit_ledger() -> AuditLedger:
+    ledger = getattr(getattr(app, "state", None), "ledger", None)
+    if ledger:
+        return ledger
     gate = getattr(getattr(app, "state", None), "gate", None)
     if gate and getattr(gate, "ledger", None):
         return gate.ledger
@@ -691,6 +713,35 @@ async def create_policy_proposal(req: CreateProposalRequest):
             "false_block_upper": report.false_block_upper,
             "ts": now,
         })
+
+        slack_ch = getattr(getattr(app, "state", None), "slack_channel", None)
+        if slack_ch:
+            try:
+                ch_req = ChannelApprovalRequest(
+                    request_id=proposal_id,
+                    kind=RequestKind.POLICY_PROPOSAL,
+                    summary={
+                        "agent_id": req.agent_id,
+                        "tool": req.tool,
+                        "coverage": report.coverage,
+                        "false_block_upper": report.false_block_upper,
+                        "benign_total": report.benign_total,
+                    },
+                    tier=tier,
+                    expires_at=expires_at,
+                    dashboard_url=f"{settings.vigil_internal_url}/?tab=proposals&id={proposal_id}",
+                    requester="operator",
+                )
+                msg_ref = slack_ch.deliver(ch_req)
+                _get_audit_ledger().append({
+                    "event": "APPROVAL_DELIVERED",
+                    "channel": "slack",
+                    "request_id": proposal_id,
+                    "message_ts": msg_ref.message_ts,
+                    "ts": now,
+                })
+            except Exception as exc:
+                logger.warning("Could not deliver proposal to Slack channel: %s", exc)
 
         out = record.model_dump()
         out["yaml_diff"] = generate_yaml_diff(record)
@@ -1005,6 +1056,69 @@ async def verify_audit_ledger():
     }
 
 
+@app.post("/evidence/bundles", status_code=201, dependencies=[Depends(require_operator)])
+async def create_evidence_bundle_route(request: Request):
+    """Exports an Ed25519-signed, offline-verifiable evidence bundle for an incident or time window."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    incident_id = body.get("incident_id")
+    from_ts = body.get("from_ts") or body.get("from") or body.get("window_start")
+    to_ts = body.get("to_ts") or body.get("to") or body.get("window_end")
+
+    if not incident_id and from_ts is None and to_ts is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Either 'incident_id' or a time window ('from'/'to') must be provided.",
+        )
+
+    registry: AgentRegistry = getattr(app.state, "registry", None)
+    action_records = []
+    proposals = []
+    if registry:
+        try:
+            records = await registry.get_action_records(
+                limit=10000,
+                start_ts=from_ts,
+                end_ts=to_ts,
+            )
+            if incident_id:
+                action_records = [r for r in records if getattr(r, "incident_id", None) == incident_id]
+                if not action_records and records:
+                    action_records = records
+            else:
+                action_records = records
+        except Exception as e:
+            logger.warning("Could not fetch action records for bundle: %s", e)
+
+        try:
+            raw_proposals = await registry.list_policy_proposals()
+            proposals = raw_proposals
+        except Exception as e:
+            logger.warning("Could not fetch proposals for bundle: %s", e)
+
+    vault = EvidenceVault(
+        ledger_path=settings.audit_ledger_path,
+        vault_root="evidence/vault",
+    )
+
+    try:
+        bundle_info = vault.create_bundle(
+            incident_id=incident_id,
+            from_ts=from_ts,
+            to_ts=to_ts,
+            action_records=action_records,
+            proposals=proposals,
+            settings=settings,
+        )
+        return bundle_info
+    except Exception as e:
+        logger.error("Failed to create evidence bundle: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/telegram/status")
 async def get_telegram_status():
     """Returns Telegram connection state and operational metadata."""
@@ -1033,8 +1147,10 @@ async def get_telegram_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/telegram/approvals")
-async def get_telegram_approvals():
+# ─── Generic Governance Approvals (Phase SLACK-1) ───────────────────────────
+
+@app.get("/approvals")
+async def get_pending_governance_approvals():
     """Returns the list of pending governance approval requests."""
     try:
         registry = app.state.registry
@@ -1043,8 +1159,8 @@ async def get_telegram_approvals():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/telegram/approvals/all")
-async def get_all_telegram_approvals(limit: int = 50):
+@app.get("/approvals/all")
+async def get_all_governance_approvals(limit: int = 50):
     """Returns the list of all governance approval requests including containment outcomes."""
     try:
         registry = app.state.registry
@@ -1053,47 +1169,40 @@ async def get_all_telegram_approvals(limit: int = 50):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-@app.get("/telegram/users")
-async def get_telegram_users():
-    """Returns the active RBAC operator registry."""
-    try:
-        registry = app.state.registry
-        return await registry.list_telegram_users()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/telegram/approvals/{request_id}/resolve", dependencies=[Depends(require_operator)])
+@app.post("/approvals/{request_id}/resolve", dependencies=[Depends(require_operator)])
 async def resolve_approval(request_id: str, payload: dict):
-    """Resolves a pending governance approval request directly from the VIGIL dashboard."""
+    """Resolves a pending governance approval request directly from the VIGIL dashboard or operator API."""
     try:
         action = payload.get("action", "").lower()
         if action not in ["approve", "deny"]:
             raise HTTPException(status_code=400, detail="Invalid action. Must be 'approve' or 'deny'")
-            
+
         registry = app.state.registry
         executor = app.state.executor
-        
+
         req_row = await registry.db.fetchrow(
             "SELECT * FROM approval_requests WHERE request_id = ?",
             (request_id,),
         )
-                
+
         if not req_row:
             raise HTTPException(status_code=404, detail="Approval request not found")
-            
+
         if req_row["status"] in ["APPROVED", "DENIED"]:
-            raise HTTPException(status_code=400, detail="Request already resolved")
-            
+            return {
+                "status": "already_resolved",
+                "resolved_to": req_row["status"].lower(),
+                "idempotent": True,
+            }
+
         from .services.telegram_service import get_incident_by_id
         incident = await get_incident_by_id(registry, req_row["incident_id"])
         if not incident:
             raise HTTPException(status_code=404, detail="Associated incident not found")
-            
+
         resolved_status = None
         containment_outcome = None
-        
+
         if action == "approve":
             resolved_status = ApprovalStatus.APPROVED
             proposed = req_row["proposed_action"]
@@ -1107,7 +1216,7 @@ async def resolve_approval(request_id: str, payload: dict):
                         type=WSEventType.REMEDIATION_EXECUTED,
                         agent_id=req_row["agent_id"],
                         payload={"incident_id": incident.incident_id, "action": incident.action_taken},
-                        timestamp=time.time()
+                        timestamp=time.time(),
                     )
                 )
             else:
@@ -1122,49 +1231,51 @@ async def resolve_approval(request_id: str, payload: dict):
                     type=WSEventType.REMEDIATION_EXECUTED,
                     agent_id=req_row["agent_id"],
                     payload={"incident_id": incident.incident_id, "action": "LOG (DENIED)"},
-                    timestamp=time.time()
+                    timestamp=time.time(),
                 )
             )
-            
+
         if resolved_status:
             await registry.resolve_approval_request(request_id, resolved_status, 0, containment_outcome=containment_outcome)
-            
-            from .app.runtime.models import GovernanceAction as ModelsGovernanceAction
-            gov_action = ModelsGovernanceAction(
+
+            gov_action = GovernanceAction(
                 request_id=request_id,
-                telegram_user_id=0,
+                provider="dashboard",
+                subject_id="dashboard-operator",
+                email="operator@corp.internal",
                 action=action.upper(),
                 reason="Resolved via VIGIL Web Dashboard UI",
             )
             await registry.log_governance_action(gov_action)
-            
-            telegram_service = getattr(app.state, "telegram_service", None)
-            if telegram_service and telegram_service.is_connected and req_row["chat_id"] and req_row["telegram_message_id"]:
-                try:
-                    new_text = f"🛡 <b>VIGIL GOVERNANCE REQUEST RESOLVED</b>\n\n" \
-                               f"<b>Agent Subject:</b> <code>{req_row['agent_id']}</code>\n" \
-                               f"<b>Proposed Action:</b> <code>{req_row['proposed_action']}</code>\n\n" \
-                               f"🛡 <b>Status:</b> ✅ Resolved via Web UI ({action.upper()})"
-                    await telegram_service.application.bot.edit_message_text(
-                        chat_id=req_row["chat_id"],
-                        message_id=req_row["telegram_message_id"],
-                        text=new_text,
-                        parse_mode="HTML"
-                    )
-                except Exception as bot_err:
-                    logger.warning(f"Failed to update Telegram message card: {bot_err}")
-                    
-            if telegram_service:
-                await telegram_service.broadcast_status()
-            
+
+            # Record in audit ledger
+            _get_audit_ledger().append({
+                "event": "APPROVAL_DECIDED",
+                "channel": "dashboard",
+                "request_id": request_id,
+                "action": action.upper(),
+                "approver_email": "operator@corp.internal",
+                "containment_outcome": containment_outcome,
+                "ts": time.time(),
+            })
+
+            # Update Slack message if channel reference exists
+            slack_ch: SlackApprovalChannel = getattr(app.state, "slack_channel", None)
+            if slack_ch:
+                ref = slack_ch._message_refs.get(request_id)
+                if ref:
+                    slack_ch.update(ref, f"Resolved via Dashboard: {action.upper()}", action.upper())
+
         return {"status": "success", "resolved_to": action}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to resolve approval request: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/telegram/approvals/bulk-resolve", dependencies=[Depends(require_operator)])
-async def bulk_resolve_approvals(payload: dict):
+@app.post("/approvals/bulk-resolve", dependencies=[Depends(require_operator)])
+async def bulk_resolve_governance_approvals(payload: dict):
     """Additive endpoint: bulk resolves multiple approval requests with a single action."""
     action = payload.get("action", "").lower()
     request_ids = payload.get("request_ids", [])
@@ -1178,6 +1289,283 @@ async def bulk_resolve_approvals(payload: dict):
         except Exception as e:
             results.append({"request_id": rid, "status": "error", "error": str(e)})
     return {"status": "bulk_resolved", "action": action, "results": results}
+
+
+# ─── Deprecated Telegram Approval Routes (410 Gone for one release) ────────
+
+@app.get("/telegram/approvals")
+async def deprecated_telegram_approvals():
+    """Deprecated: Telegram is removed from approval paths."""
+    raise HTTPException(status_code=410, detail="Telegram approval routes are deprecated. Use /approvals instead.")
+
+
+@app.get("/telegram/approvals/all")
+async def deprecated_telegram_approvals_all(limit: int = 50):
+    """Deprecated: Telegram is removed from approval paths."""
+    raise HTTPException(status_code=410, detail="Telegram approval routes are deprecated. Use /approvals/all instead.")
+
+
+@app.post("/telegram/approvals/{request_id}/resolve")
+async def deprecated_telegram_resolve(request_id: str):
+    """Deprecated: Telegram is removed from approval paths."""
+    raise HTTPException(status_code=410, detail=f"Telegram approval routes are deprecated. Use /approvals/{request_id}/resolve instead.")
+
+
+@app.post("/telegram/approvals/bulk-resolve")
+async def deprecated_telegram_bulk():
+    """Deprecated: Telegram is removed from approval paths."""
+    raise HTTPException(status_code=410, detail="Telegram approval routes are deprecated. Use /approvals/bulk-resolve instead.")
+
+
+# ─── Slack Interactive Callbacks (Phase SLACK-1) ───────────────────────────
+
+@app.post("/integrations/slack/interactions")
+async def slack_interactions(request: Request):
+    """Ingests interactive Block Kit callbacks from Slack.
+    
+    Verifies HMAC-SHA256 signature, validates verified corporate identity, checks
+    nonces, enforces separation of duties and two-approver rules, writes to the
+    audit ledger, and executes through the standard containment/proposal paths.
+    """
+    raw_body = await request.body()
+    headers = dict(request.headers)
+
+    slack_ch: SlackApprovalChannel = getattr(app.state, "slack_channel", None)
+    if not slack_ch:
+        raise HTTPException(status_code=503, detail="Slack approval channel is not initialized.")
+
+    try:
+        decision = slack_ch.parse_callback(headers, raw_body)
+    except CallbackRejected as exc:
+        reason = str(exc)
+        _get_audit_ledger().append({
+            "event": "APPROVAL_CALLBACK_REJECTED",
+            "channel": "slack",
+            "reason": reason,
+            "ts": time.time(),
+        })
+        logger.warning("[Slack] Interaction rejected: %s", reason)
+        raise HTTPException(status_code=400, detail=reason)
+
+    _get_audit_ledger().append({
+        "event": "APPROVAL_CALLBACK_ACCEPTED",
+        "channel": "slack",
+        "request_id": decision.request_id,
+        "action": decision.action.value,
+        "approver_email": decision.approver.email,
+        "ts": decision.received_at,
+    })
+
+    registry: AgentRegistry = app.state.registry
+    now = time.time()
+
+    # 1. Check if request_id corresponds to a PolicyProposalRecord
+    proposal_row = await registry.get_policy_proposal(decision.request_id)
+    if proposal_row:
+        rec = PolicyProposalRecord.model_validate(proposal_row)
+
+        # Check expiry
+        if rec.status == STATUS_PROPOSED and rec.is_expired(now):
+            rec.status = STATUS_EXPIRED
+            await registry.update_policy_proposal(rec.id, status=STATUS_EXPIRED)
+            _get_audit_ledger().append({
+                "event": "POLICY_PROPOSAL_EXPIRED",
+                "proposal_id": rec.id,
+                "channel": "slack",
+                "ts": now,
+            })
+            ref = slack_ch._message_refs.get(rec.id)
+            if ref:
+                slack_ch.update(ref, "Proposal has expired (72h limit).", "EXPIRED")
+            raise HTTPException(status_code=409, detail="Proposal has expired")
+
+        # Idempotency check: if already decided, return existing state without changes
+        if rec.status in (STATUS_APPROVED, STATUS_REJECTED, STATUS_EXPIRED):
+            return {
+                "status": rec.status,
+                "proposal_id": rec.id,
+                "idempotent": True,
+                "message": f"Proposal is already {rec.status}",
+            }
+
+        # Separation of duties: requester cannot approve
+        creator = getattr(rec, "creator", "")
+        if creator and creator.lower() == decision.approver.email.lower():
+            raise HTTPException(
+                status_code=403,
+                detail="Separation of duties violation: proposal requester cannot approve.",
+            )
+
+        if decision.action == DecisionAction.APPROVE:
+            approvals: List[str] = json.loads(rec.approvals_json) if rec.approvals_json else []
+            if decision.approver.email not in approvals:
+                approvals.append(decision.approver.email)
+            rec.approvals_json = json.dumps(approvals)
+
+            # Two-approver rule for HIGH tier proposals (M4 requirement)
+            if rec.impact_tier == TIER_HIGH and len(approvals) < 2:
+                rec.version += 1
+                await registry.update_policy_proposal(
+                    proposal_id=rec.id,
+                    approvals_json=rec.approvals_json,
+                    version=rec.version,
+                )
+                _get_audit_ledger().append({
+                    "event": "POLICY_PROPOSAL_PARTIALLY_APPROVED",
+                    "proposal_id": rec.id,
+                    "approver": decision.approver.email,
+                    "channel": "slack",
+                    "progress": "1/2 approvals required",
+                    "ts": now,
+                })
+                ref = slack_ch._message_refs.get(rec.id)
+                if ref:
+                    slack_ch.update(ref, f"Approved by {decision.approver.email} (1 of 2 required). Awaiting 2nd approver.", "PARTIALLY_APPROVED")
+                return {"status": STATUS_PROPOSED, "approvals": approvals, "required": 2}
+
+            rec.status = STATUS_APPROVED
+            rec.decided_at = now
+            rec.version += 1
+            await registry.update_policy_proposal(
+                proposal_id=rec.id,
+                status=rec.status,
+                approvals_json=rec.approvals_json,
+                decided_at=rec.decided_at,
+                version=rec.version,
+            )
+            _get_audit_ledger().append({
+                "event": "POLICY_PROPOSAL_APPROVED",
+                "proposal_id": rec.id,
+                "approver": decision.approver.email,
+                "channel": "slack",
+                "status": STATUS_APPROVED,
+                "agent_id": rec.agent_id,
+                "tool": rec.tool,
+                "impact_tier": rec.impact_tier,
+                "ts": now,
+            })
+            ref = slack_ch._message_refs.get(rec.id)
+            if ref:
+                slack_ch.update(ref, f"Approved by {decision.approver.email}", "APPROVED")
+            return {"status": STATUS_APPROVED, "proposal_id": rec.id}
+
+        elif decision.action == DecisionAction.REJECT:
+            rec.status = STATUS_REJECTED
+            rec.decided_at = now
+            rec.version += 1
+            await registry.update_policy_proposal(
+                proposal_id=rec.id,
+                status=rec.status,
+                decided_at=rec.decided_at,
+                version=rec.version,
+            )
+            _get_audit_ledger().append({
+                "event": "POLICY_PROPOSAL_REJECTED",
+                "proposal_id": rec.id,
+                "approver": decision.approver.email,
+                "channel": "slack",
+                "status": STATUS_REJECTED,
+                "agent_id": rec.agent_id,
+                "tool": rec.tool,
+                "impact_tier": rec.impact_tier,
+                "ts": now,
+            })
+            ref = slack_ch._message_refs.get(rec.id)
+            if ref:
+                slack_ch.update(ref, f"Rejected by {decision.approver.email}", "REJECTED")
+            return {"status": STATUS_REJECTED, "proposal_id": rec.id}
+
+    # 2. Check if request_id corresponds to a Containment ApprovalRequest
+    req_row = await registry.db.fetchrow(
+        "SELECT * FROM approval_requests WHERE request_id = ?",
+        (decision.request_id,),
+    )
+    if req_row:
+        if req_row["status"] in ("APPROVED", "DENIED"):
+            # Idempotency
+            return {
+                "status": req_row["status"],
+                "request_id": decision.request_id,
+                "idempotent": True,
+                "message": f"Containment request is already {req_row['status']}",
+            }
+
+        incident = await registry.get_incident(req_row["incident_id"])
+        executor = app.state.executor
+
+        if decision.action == DecisionAction.APPROVE:
+            resolved_status = ApprovalStatus.APPROVED
+            proposed = req_row["proposed_action"]
+            containment_outcome = proposed
+            if incident and incident.action_taken != proposed:
+                incident.action_taken = await executor.execute_human_approved(
+                    incident, proposed, approver=decision.approver.email
+                )
+                containment_outcome = incident.action_taken
+
+            await registry.resolve_approval_request(
+                decision.request_id,
+                resolved_status,
+                0,
+                containment_outcome=containment_outcome,
+            )
+            await registry.log_governance_action(
+                GovernanceAction(
+                    request_id=decision.request_id,
+                    provider="slack",
+                    subject_id=decision.approver.subject_id,
+                    email=decision.approver.email,
+                    action="APPROVE",
+                    reason="Approved via Slack governance card",
+                )
+            )
+            _get_audit_ledger().append({
+                "event": "APPROVAL_DECIDED",
+                "channel": "slack",
+                "request_id": decision.request_id,
+                "action": "APPROVE",
+                "approver_email": decision.approver.email,
+                "containment_outcome": containment_outcome,
+                "ts": now,
+            })
+            ref = slack_ch._message_refs.get(decision.request_id)
+            if ref:
+                slack_ch.update(ref, f"Containment APPROVED by {decision.approver.email}", "APPROVED")
+            return {"status": "APPROVED", "containment_outcome": containment_outcome}
+
+        elif decision.action == DecisionAction.REJECT:
+            resolved_status = ApprovalStatus.DENIED
+            await registry.resolve_approval_request(
+                decision.request_id,
+                resolved_status,
+                0,
+                containment_outcome="CANCELLED",
+            )
+            await registry.log_governance_action(
+                GovernanceAction(
+                    request_id=decision.request_id,
+                    provider="slack",
+                    subject_id=decision.approver.subject_id,
+                    email=decision.approver.email,
+                    action="DENY",
+                    reason="Denied via Slack governance card",
+                )
+            )
+            _get_audit_ledger().append({
+                "event": "APPROVAL_DECIDED",
+                "channel": "slack",
+                "request_id": decision.request_id,
+                "action": "DENY",
+                "approver_email": decision.approver.email,
+                "containment_outcome": "CANCELLED",
+                "ts": now,
+            })
+            ref = slack_ch._message_refs.get(decision.request_id)
+            if ref:
+                slack_ch.update(ref, f"Containment DENIED by {decision.approver.email}", "DENIED")
+            return {"status": "DENIED", "containment_outcome": "CANCELLED"}
+
+    raise HTTPException(status_code=404, detail=f"Approval request '{decision.request_id}' not found.")
 
 
 @app.get("/api/v2/integrity/{agent_id}")

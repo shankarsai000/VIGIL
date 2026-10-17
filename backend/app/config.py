@@ -62,12 +62,26 @@ class VigilSettings(BaseSettings):
     # WebSocket
     ws_heartbeat_interval: int = Field(default=30, description="WebSocket heartbeat interval in seconds")
     
-    # Telegram Governed Runtime
+    # Telegram Governed Runtime (Legacy / Notification only)
     telegram_bot_token: str = Field(default="", description="Telegram Bot API token from BotFather")
     telegram_admin_ids: str = Field(default="", description="Comma-separated authorized Telegram admin user IDs")
     telegram_webhook_url: str = Field(default="", description="Webhook URL for production Telegram mode")
     telegram_polling_mode: bool = Field(default=True, description="Use polling (True) or webhook (False) for Telegram")
     telegram_sleep_mode: bool = Field(default=False, description="Overnight autonomous protection mode toggle")
+
+    # Slack Governed Approvals (Phase SLACK-1)
+    slack_bot_token: str = Field(default="", description="Slack Bot User OAuth Token (xoxb-...)")
+    slack_signing_secret: str = Field(default="", description="Slack App Signing Secret")
+    slack_app_token: str = Field(default="", description="Slack App-Level Token for Socket Mode (xapp-...)")
+    slack_approval_channel: str = Field(default="", description="Slack channel ID for governance approvals")
+    slack_allowed_email_domains: str = Field(default="corp.internal,example.com", description="Comma-separated allowed approver email domains")
+    slack_mode: str = Field(default="http", description="http | socket")
+
+    @property
+    def slack_allowed_email_domain_list(self) -> list[str]:
+        if not self.slack_allowed_email_domains:
+            return []
+        return [d.strip().lower() for d in self.slack_allowed_email_domains.split(",") if d.strip()]
     
     @property
     def telegram_admin_id_list(self) -> list[int]:

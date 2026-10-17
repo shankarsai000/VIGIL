@@ -1,0 +1,27 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.1.1, pluggy-1.6.0 -- D:\vigil-v2\vigil-v2\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\vigil-v2\vigil-v2
+configfile: pytest.ini
+plugins: anyio-4.15.1
+collecting ... collected 17 items
+
+backend/tests/test_slack_approvals.py::test_signature_valid PASSED       [  5%]
+backend/tests/test_slack_approvals.py::test_signature_tampered_body PASSED [ 11%]
+backend/tests/test_slack_approvals.py::test_signature_stale_timestamp PASSED [ 17%]
+backend/tests/test_slack_approvals.py::test_signature_missing_header PASSED [ 23%]
+backend/tests/test_slack_approvals.py::test_signature_empty_secret PASSED [ 29%]
+backend/tests/test_slack_approvals.py::test_identity_corporate_email_passes PASSED [ 35%]
+backend/tests/test_slack_approvals.py::test_identity_personal_domain_fails PASSED [ 41%]
+backend/tests/test_slack_approvals.py::test_identity_missing_email_fails PASSED [ 47%]
+backend/tests/test_slack_approvals.py::test_identity_guest_from_another_org_fails PASSED [ 52%]
+backend/tests/test_slack_approvals.py::test_delivery_and_nonce_validation PASSED [ 58%]
+backend/tests/test_slack_approvals.py::test_separation_of_duties_requester_rejected PASSED [ 64%]
+backend/tests/test_slack_approvals.py::test_expired_request_returns_rejection PASSED [ 70%]
+backend/tests/test_slack_approvals.py::test_slack_interaction_endpoint_containment_and_idempotency PASSED [ 76%]
+backend/tests/test_slack_approvals.py::test_two_approver_rule_for_high_tier_proposal PASSED [ 82%]
+backend/tests/test_slack_approvals.py::test_telegram_removed_from_approval_paths PASSED [ 88%]
+backend/tests/test_approval_containment.py::test_registry_records_containment_outcome PASSED [ 94%]
+backend/tests/test_approval_containment.py::test_resolve_approval_endpoint_updates_containment_outcome PASSED [100%]
+
+============================= 17 passed in 7.57s ==============================

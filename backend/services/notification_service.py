@@ -1,7 +1,6 @@
 import logging
 import time
 from typing import Optional
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from ..app.runtime.models import (
     IncidentRecord,
     ApprovalRequest,
@@ -89,72 +88,29 @@ class NotificationService:
             logger.error(f"Failed to log notification records for incident alert: {e}")
 
     async def send_approval_card(self, approval_request: ApprovalRequest) -> None:
-        """Sends an inline keyboard governance approval card to all active SECURITY_ANALYST+ operators."""
-        msg = (
-            f"🛡 <b>VIGIL GOVERNANCE APPROVAL REQUEST</b>\n\n"
-            f"<b>Agent Subject:</b> <code>{approval_request.agent_id}</code>\n"
-            f"<b>Threat Type:</b> <code>{approval_request.threat_type.value}</code>\n"
-            f"<b>Threat Score:</b> <code>{approval_request.threat_score:.2f}</code>\n"
-            f"<b>Proposed Containment:</b> <code>{approval_request.proposed_action}</code>\n\n"
-            f"🚨 <i>Awaiting security operations response. Use buttons below to resolve:</i>"
-        )
-        
-        keyboard = [
-            [
-                InlineKeyboardButton("Approve", callback_data=f"gov:{approval_request.request_id}:approve"),
-                InlineKeyboardButton("Deny", callback_data=f"gov:{approval_request.request_id}:deny"),
-            ],
-            [
-                InlineKeyboardButton("Investigate", callback_data=f"gov:{approval_request.request_id}:investigate")
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        if not self.telegram_service or not self.telegram_service.is_connected:
-            logger.warning("Telegram service not initialized/connected. Saving approval request only.")
-            await self.registry.create_approval_request(approval_request)
-            return
-            
+        """Saves approval request to registry and delivers approval card to Slack approval channel."""
+        await self.registry.create_approval_request(approval_request)
         try:
-            users = await self.registry.list_telegram_users()
+            from ..app.channels import get_approval_channel, ApprovalRequest as ChannelApprovalRequest, RequestKind
+            channel = get_approval_channel()
+            score = float(approval_request.threat_score or 0.0)
+            req = ChannelApprovalRequest(
+                request_id=approval_request.request_id,
+                kind=RequestKind.CONTAINMENT,
+                tier="HIGH" if score >= 0.8 else "LOW",
+                summary_fields={
+                    "agent_id": approval_request.agent_id,
+                    "threat_type": getattr(approval_request.threat_type, "value", str(approval_request.threat_type)),
+                    "threat_score": f"{score:.2f}",
+                    "proposed_action": approval_request.proposed_action,
+                    "incident_id": approval_request.incident_id,
+                },
+                expires_at=time.time() + 3600.0,
+                requester="system",
+            )
+            await channel.deliver(req)
         except Exception as e:
-            logger.error(f"Failed to fetch telegram users for approval cards: {e}")
-            await self.registry.create_approval_request(approval_request)
-            return
-            
-        first_msg = True
-        for user in users:
-            if not user.is_active:
-                continue
-            if user.role.has_permission(TelegramRole.SECURITY_ANALYST):
-                try:
-                    sent_msg = await self.telegram_service.application.bot.send_message(
-                        chat_id=user.telegram_id,
-                        text=msg,
-                        parse_mode="HTML",
-                        reply_markup=reply_markup,
-                    )
-                    
-                    if first_msg:
-                        approval_request.chat_id = user.telegram_id
-                        approval_request.telegram_message_id = sent_msg.message_id
-                        await self.registry.create_approval_request(approval_request)
-                        first_msg = False
-                        
-                    record = NotificationRecord(
-                        incident_id=approval_request.incident_id,
-                        chat_id=user.telegram_id,
-                        notification_type="APPROVAL_CARD",
-                        content_summary=f"Governance approval card for {approval_request.agent_id}",
-                        delivered=True,
-                    )
-                    await self.registry.log_notification(record)
-                except Exception as e:
-                    logger.error(f"Failed to send approval card to user {user.telegram_id}: {e}")
-                    
-        if first_msg:
-            # If no analyst got it, we still write it to the DB so it is in the queue
-            await self.registry.create_approval_request(approval_request)
+            logger.error(f"Failed to deliver approval request to Slack channel: {e}")
 
     async def send_threat_snapshot(self, incident: IncidentRecord) -> None:
         """Sends a text-based threat topology snapshot to Telegram operators."""

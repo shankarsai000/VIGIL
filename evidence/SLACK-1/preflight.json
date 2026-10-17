@@ -1,0 +1,51 @@
+{
+  "sdk": {
+    "slack_bolt_version": "1.30.0",
+    "slack_sdk_version": "3.45.0"
+  },
+  "environment_variables": {
+    "SLACK_BOT_TOKEN": {
+      "present": true,
+      "length": 59,
+      "prefix": "xoxb-"
+    },
+    "SLACK_SIGNING_SECRET": {
+      "present": true,
+      "length": 32
+    },
+    "SLACK_APP_TOKEN": {
+      "present": true,
+      "length": 98,
+      "prefix": "xapp-"
+    },
+    "SLACK_APPROVAL_CHANNEL": {
+      "present": true,
+      "length": 11,
+      "redacted": "***16RY"
+    },
+    "SLACK_ALLOWED_EMAIL_DOMAINS": {
+      "present": true,
+      "length": 9
+    },
+    "SLACK_MODE": "socket"
+  },
+  "bot_identity": {
+    "user_id_redacted": "***DEDN",
+    "team": "VIGIL Governance"
+  },
+  "granted_scopes": [
+    "chat:write",
+    "users:read",
+    "users:read.email",
+    "channels:read",
+    "groups:read"
+  ],
+  "required_scopes": [
+    "chat:write",
+    "users:read",
+    "users:read.email",
+    "channels:read"
+  ],
+  "missing_scopes": [],
+  "preflight_status": "PASS"
+}

@@ -270,13 +270,16 @@ class TelegramGovernanceAction(BaseModel):
 
 
 class GovernanceAction(BaseModel):
-    """Records approval/denial actions taken via Telegram governance."""
+    """Records approval/denial actions taken via governance channels (Slack, Dashboard, API)."""
     action_id: str = Field(default_factory=lambda: str(uuid4()), description="Unique governance action ID")
     request_id: str = Field(description="Associated approval request ID")
-    telegram_user_id: int = Field(description="Telegram user who performed the action")
+    provider: str = Field(default="slack", description="Identity provider: slack | dashboard | api")
+    subject_id: str = Field(default="", description="Provider subject / user identifier")
+    email: str = Field(default="", description="Verified corporate email of approver")
     action: str = Field(description="Action taken: APPROVE, DENY, INVESTIGATE")
     timestamp: float = Field(default_factory=time.time, description="When the action was taken")
     reason: str = Field(default="", description="Optional reason for the action")
+    telegram_user_id: Optional[int] = Field(default=None, description="Deprecated: legacy Telegram user ID")
 
 
 class NotificationRecord(BaseModel):

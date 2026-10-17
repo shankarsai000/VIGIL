@@ -87,3 +87,15 @@ class AuditLedger:
                     return VerifyResult(False, count, prev, row.get("seq"), "entry content does not match its hash")
                 prev, expected_seq, count = row["hash"], expected_seq + 1, count + 1
         return VerifyResult(ok=True, entries=count, last_hash=prev)
+
+    def read_entries(self) -> list[dict[str, Any]]:
+        """Reads all inner record payloads from the audit ledger."""
+        if not self.path.exists():
+            return []
+        records = []
+        with self.path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if line.strip():
+                    row = json.loads(line)
+                    records.append(row.get("record", {}))
+        return records

@@ -1,0 +1,3 @@
+Scanned files: 5
+Telegram imports found: 0
+VERIFIED: No approval path imports the Telegram module.

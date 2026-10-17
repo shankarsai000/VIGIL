@@ -1,0 +1,8 @@
+{
+  "request_id": "req-expired-1792216857",
+  "rejection_reason": "Request has expired",
+  "http_status_expected": 409,
+  "channel_message_updated_to": "EXPIRED",
+  "ledger_seq": 10814,
+  "timestamp": 1792216859.4879131
+}

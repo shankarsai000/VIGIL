@@ -169,21 +169,33 @@ def test_resolve_approval_endpoint_updates_containment_outcome(client, keys, tmp
 
     app.state.executor = FakeExecutor()
 
-    # Call POST /telegram/approvals/{request_id}/resolve with approve
+    # Call POST /approvals/{request_id}/resolve with approve
     res = client.post(
-        "/telegram/approvals/req-001/resolve",
+        "/approvals/req-001/resolve",
         json={"action": "approve"},
         headers={"X-VIGIL-Operator-Key": OP_KEY},
     )
     assert res.status_code == 200
 
-    # Verify endpoint GET /telegram/approvals/all returns containment_outcome
-    all_res = client.get("/telegram/approvals/all")
+    # Verify endpoint GET /approvals/all returns containment_outcome
+    all_res = client.get("/approvals/all")
     assert all_res.status_code == 200
     approvals_data = all_res.json()
     assert len(approvals_data) == 1
     assert approvals_data[0]["request_id"] == "req-001"
     assert approvals_data[0]["status"] == "APPROVED"
     assert approvals_data[0]["containment_outcome"] == "QUARANTINE"
+
+    # Verify legacy /telegram/approvals returns 410 Gone
+    legacy_res = client.get("/telegram/approvals")
+    assert legacy_res.status_code == 410
+    assert "deprecated" in legacy_res.json()["detail"].lower()
+
+    legacy_post = client.post(
+        "/telegram/approvals/req-001/resolve",
+        json={"action": "approve"},
+        headers={"X-VIGIL-Operator-Key": OP_KEY},
+    )
+    assert legacy_post.status_code == 410
 
     asyncio.run(registry.db.close())

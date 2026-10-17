@@ -1,0 +1,33 @@
+{
+  "app_name": "VIGIL Policy Immune System",
+  "app_version": "2.0.0",
+  "detection_parameters": {
+    "ewma": {
+      "alpha": 0.1,
+      "cold_start_threshold": 50
+    },
+    "weights": {
+      "ewma": 0.25,
+      "isolation_forest": 0.15,
+      "rule": 0.6
+    }
+  },
+  "legal_and_regulatory_notice": "Any mapping of VIGIL evidence bundles, audit ledgers, telemetry traces, or policy enforcement actions to regulatory duties (including EU AI Act, SOC 2 Type II, HIPAA, ISO 42001, or NIST AI RMF) must be reviewed and confirmed by legal counsel.",
+  "modes": {
+    "armoriq_agent_id": "vigil-containment",
+    "armoriq_containment_mcp_id": "vigil-containment",
+    "armoriq_mode": "disabled",
+    "armoriq_token_validity_seconds": 300,
+    "armoriq_use_production": true,
+    "dry_run_default": true,
+    "offline_replay_enforced": true
+  },
+  "python_version": "3.11.9",
+  "retention_and_redaction": {
+    "action_records": "structural shape redaction (keys, types, lengths; zero raw payloads or secrets)",
+    "audit_ledger": "append-only immutable SHA-256 hash-chain",
+    "policy_proposals": "72-hour hard server-side expiration (HTTP 409)",
+    "secrets_scrubbing": "automatic regex scrubbing of planted tokens and auth keys"
+  },
+  "schema_version": "v1"
+}

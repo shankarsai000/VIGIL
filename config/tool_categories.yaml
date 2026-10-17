@@ -1,0 +1,30 @@
+version: v1
+public_key_hex: "f967c1bf41c92fd3e91e4d2b5b7f0a1ab160fb69011955940fbf390321109626"
+categories:
+  secret_read:
+    - mcp: "vigil-tools"
+      tool: "billing_database"
+    - mcp: "vault"
+      tool: "read_secret"
+    - mcp: "cloud-iam"
+      tool: "get_credentials"
+  external_send:
+    - mcp: "customer-bot"
+      tool: "exfiltrate_data"
+    - mcp: "net-tools"
+      tool: "send_http"
+    - mcp: "slack"
+      tool: "post_message"
+  order_management:
+    - mcp: "vigil-tools"
+      tool: "order_status"
+  containment_actuate:
+    - mcp: "vigil-containment"
+      tool: "quarantine_agent"
+    - mcp: "vigil-containment-v2"
+      tool: "quarantine_agent"
+  system_exec:
+    - mcp: "system"
+      tool: "execute_command"
+    - mcp: "bash"
+      tool: "run_script"

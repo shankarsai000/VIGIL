@@ -3,7 +3,7 @@ import { useVigilStore } from '../store';
 import { PolicyDecision } from '../types';
 import { vigilClient } from '../api';
 import { formatRelativeTime, formatAbsoluteTooltip } from '../utils/governanceBadges';
-import { TelegramGovernancePanel } from './TelegramGovernancePanel';
+import { ApprovalChannelPanel } from './ApprovalChannelPanel';
 
 export const GovernanceView: React.FC = () => {
   const { auditLog } = useVigilStore();
@@ -252,9 +252,9 @@ export const GovernanceView: React.FC = () => {
           </div>
         </div>
 
-        {/* Telegram Governance Panel (Right Column) */}
+        {/* Approval Channel Panel (Right Column) */}
         <div className="flex-[1] overflow-y-auto min-h-0">
-          <TelegramGovernancePanel />
+          <ApprovalChannelPanel />
         </div>
       </div>
     </div>

@@ -1,0 +1,53 @@
+================================================================================
+ VIGIL POLICY IMMUNE SYSTEM — AUTONOMOUS RUNTIME GOVERNANCE DEMO
+ Execution Mode: OFFLINE (fakes)
+================================================================================
+
+[Step 1/6] INCIDENT INGESTION & ACTION RECORDS
+  Scenario: Malicious prompt injection triggers unauthorized billing database dump.
+  Ingested 632 action records for agent 'customer-bot':
+    - Benign baseline: 620 records (assumed benign)
+    - Confirmed incident 'inc-2026-10-m6-exfil': 12 attack records
+
+[Step 2/6] CANDIDATE RULE GENERATION
+  Extracted 1 attack candidate families:
+    - Candidate: Agent 'customer-bot' | Tool: 'vigil-tools.billing_database' | Status: ACCEPT
+
+[Step 3/6] COUNTERFACTUAL REPLAY TABLE & EXACT STATISTICAL BOUND
+  +-----------------------------------------------------------------------+
+  | Metric                      | Observed Value | Mathematical Criterion |
+  +-----------------------------------------------------------------------+
+  | Attacks Observed            | 12             | Total incident vectors |
+  | Attacks Blocked             | 12             | Target tool matches    |
+  | Attack Coverage             |         100.0% | >= 90.0% required      |
+  | Benign Baseline             | 620            | >= 600 required        |
+  | Benign False Blocks         | 0              | Metric to MINIMISE     |
+  | False-Block Rate (Point)    |          0.00% | Empirical rate         |
+  | 95% Clopper-Pearson Bound   |         0.482% | <= 0.500% required     |
+  | REPLAY VERDICT              | ACCEPT         | SAFE TO PROPOSE        |
+  +-----------------------------------------------------------------------+
+
+[Step 4/6] TWO-PERSON GOVERNANCE APPROVAL WORKFLOW
+  Proposal ID: prop-demo-64303 | Tier: HIGH (demands 2 human approvers)
+  [Approver 1/2] sec-lead@corp.internal signed approval. Progress: 1 of 2
+  [Approver 2/2] compliance-officer@corp.internal signed approval. Progress: 2 of 2
+  Proposal Status Transitioned: -> APPROVED
+
+[Step 5/6] PLATFORM POLICY ENFORCEMENT & SANDBOX VERIFICATION
+  Executing sandbox agent calls under verified policy envelope (mode=offline (fakes))...
+    - Attack calls on 'billing_database': 3 tested, 3 DENIED (PolicyBlockedException)
+    - Benign calls on 'order_status': 3 tested, 3 ALLOWED
+
+[Step 6/6] CRYPTOGRAPHIC RECEIPT & TAMPER-EVIDENT AUDIT LEDGER
+  Receipt ID: rcpt-527c2a845d673e5f
+  Public Key (Ed25519): f967c1bf41c92fd3e91e4d2b5b7f0a1a...
+  Signature (Ed25519):  903f53718dbcdb35dc24f966624da34f...
+  Cryptographic Proof Verified: True
+  Tamper-Evident Ledger: Receipt hash chained at D:\vigil-v2\vigil-v2\backend\storage\audit_ledger.jsonl
+
+  [Cross-Tenant] Exported signed signature bundle 'bundle-303428' with 1 category motifs.
+                 Zero sensitive identifiers leaked; strictly bucketed support.
+
+================================================================================
+ VIGIL POLICY IMMUNE DEMO COMPLETED IN 0.31s (LIMIT: 120s)
+================================================================================

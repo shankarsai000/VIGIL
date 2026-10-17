@@ -1,0 +1,12 @@
+=== VIGIL Offline Evidence Verification ===
+Timestamp: 1792170368.756497
+Target: C:\Users\shank\AppData\Local\Temp\pytest-of-shank\pytest-151\test_offline_network_disabled_0\vault\bundle-offline-test.tar.gz
+Network Status: DISABLED (all socket connections raise ConnectionRefusedError)
+Result Code: 0
+Log Output:
+VERIFICATION SUCCESSFUL: Bundle 'bundle-offline-test'
+  [OK] Manifest Ed25519 digital signature verified
+  [OK] All 5 files verified against SHA-256 manifest digests
+  [OK] Zero unmanifested files found
+  [OK] Ledger hash-chain verified (6 contiguous entries, seq 5..10)
+  [OK] Signer public key: 9b835a9f6eede6e730b73ba6ff3bccb8e4cd70821012514023aadc0db7902811

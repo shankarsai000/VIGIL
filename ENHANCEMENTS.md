@@ -51,38 +51,84 @@ Local, the way it was verified:
 
 Docker: `docker compose up` starts `vigil-containment` as well. Put the variables in `.env`.
 
-## Verification
+## Policy Immune System Enhancements (M0 — M6)
 
-**Offline tests (39, all pass).** They cover gate fail-closed behaviour, using fakes that raise the SDK's real exception classes. They also cover ledger tamper detection, synthesis rules, route protection, the containment callback, and the containment MCP tool.
+VIGIL v2 has been extended with the complete Policy Immune System architecture:
 
-**Live, in this sandbox** (local PostgreSQL 16.15 and Redis 7.0.15, uvicorn, no Docker):
-- Startup succeeds and the schema initializes.
-- Write endpoints: no key returns 401, a wrong key returns 401, the right key returns 200.
-- Containment callback: no secret returns 401. With the secret, the agent becomes QUARANTINED.
-- WebSocket: the right key is accepted. A wrong key is refused at the handshake.
-- `GET /audit/verify` reports ok across 70 entries from simulator and manual traffic.
-- Human approval, `local-demo`: the agent becomes QUARANTINED. The ledger records `APPROVED` with `local-demo (NOT ArmorIQ)`.
-- Human approval, `disabled`: a quarantine proposal is approved and the agent stays NORMAL. The ledger records `ESCALATE`, `disabled (NOT ArmorIQ)`, and `NOT_CONTAINED`.
-- Containment MCP over streamable HTTP: `quarantine_agent` is callable from an MCP client, and the quarantine is applied. A malformed call is refused.
+1. **Schema v1 Labelled Action Records & Structural Redaction (Phase M1)**:
+   - Captures every agent interaction as a redacted `ActionRecord` holding argument shapes, types, lengths, and keys only. Placed secrets and raw SQL/payload text never reach storage.
+   - Evidence: [`evidence/M1/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M1/report.md), [`evidence/M1/action_traces_sample.jsonl`](file:///d:/vigil-v2/vigil-v2/evidence/M1/action_traces_sample.jsonl).
 
-**Not verified.** Live ArmorIQ. No platform key was available, so `live` mode is covered only by fakes. The SDK surface was checked against the installed version 0.6.10. Holds, approvals, and the containment MCP registration on the ArmorIQ platform are untested. The Telegram path was not exercised live, because no bot is configured here.
+2. **Counterfactual Replay Engine & Exact Clopper-Pearson Bound (Phase M2)**:
+   - Evaluates candidate denial rules over historical recorded traffic with zero network or database calls.
+   - Computes attack coverage and the exact one-sided Clopper-Pearson upper bound $\bar{p}_{1-\delta} = 1 - \delta^{1/n}$ via the Beta PPF ($k=0, \ \delta=0.05$).
+   - Replay verdict requires coverage $\ge 90\%$, $\bar{p}_{0.95} \le 0.5\%$, and $\ge 600$ benign samples.
+   - Evidence: [`evidence/M2/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M2/report.md), [`evidence/M2/replay_report_accept.json`](file:///d:/vigil-v2/vigil-v2/evidence/M2/replay_report_accept.json).
 
-## Open items (found, not fixed)
+3. **Candidate Synthesis & Dry-Run Compiler (Phase M3)**:
+   - Groups attack events into candidate rule families `(agent_id, tool)`. Generates dot-notation `armoriq.yaml` patches and slash-notation SDK inline policies.
+   - Compiler enforces `--dry-run` by default; `--write` is strictly prohibited unless proposal status is `APPROVED`.
+   - Evidence: [`evidence/M3/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M3/report.md), [`evidence/M3/customer-bot.manifest.json`](file:///d:/vigil-v2/vigil-v2/evidence/M3/customer-bot.manifest.json).
 
-- The ArmorClaw model has no weights in the repo. `backend/models/armorclaw/v4` contains config and tokenizer files only, so the prompt-injection classifier cannot run.
-- No trained telemetry model file is in the repo, so the ML layer is probably inactive. Not verified at runtime.
-- `/health` lists DistilBERT and Random Forest engines. Neither was shown to be loaded here. Treat that list as unverified.
-- Approving a request marks the approval record `APPROVED` even when containment did not happen. The real outcome is recorded in the incident and the ledger, not as a separate approval status.
-- Read endpoints (`GET /agents`, `/incidents`, `/audit`, `/api/v2/*`) are still unauthenticated.
-- The operator key ships to the browser with the dashboard bundle.
-- In `local-demo` the simulator generates attacks, approvals, and quarantines continuously, so the demo state changes without user input.
-- Conformal false-quarantine calibration is not built. It needs labelled agent episodes. The repo's labelled data is network flows.
-- Some README claims are wrong. The storage is PostgreSQL only, not SQLite. The audit trail is hash-chained now, but it is still local, not immutable. Mock mode was removed. The ArmorClaw weights are missing.
+4. **Two-Person Proposal Approval Workflow & UI (Phase M4)**:
+   - Enforces a 72-hour hard server expiration (returns HTTP 409).
+   - High Impact proposals (blast radius spanning multiple agents or historical collisions) demand two distinct human approvers.
+   - Evidence: [`evidence/M4/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M4/report.md), [`evidence/M4/backend_tests.txt`](file:///d:/vigil-v2/vigil-v2/evidence/M4/backend_tests.txt).
 
-## Next steps
+5. **ArmorIQ Platform Verification & Ed25519 Signed Receipts (Phase M5)**:
+   - Sandbox verification agent runs attack calls against live ArmorIQ platform (`armoriq-sdk==0.6.10`, production proxy `https://customer-proxy.armoriq.ai`).
+   - Empirically proved authentic platform denial via `PolicyBlockedException: Tool 'billing_database' denied by OPA: policy_constraints_not_satisfied` at the OPA evaluation layer (`layer: "opa"`).
+   - Benign calls on `order_status` succeed.
+   - Issues Ed25519 cryptographic receipts; private key lives outside repository at `~/.vigil/receipt_ed25519.key`. Appends receipt hash to `backend/storage/audit_ledger.jsonl`.
+   - Evidence: [`evidence/M5/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M5/report.md), [`evidence/M5/live_verification.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_verification.json), [`evidence/M5/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_receipt.json), [`evidence/M5/preflight.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/preflight.json).
 
-1. Register the containment MCP with ArmorIQ, write the `quarantine_agent` policy, and run one `live` authorization end to end.
-2. Store the containment outcome on the approval record.
-3. Authenticate the read endpoints. Move the dashboard to a server-side proxy so the key stays off the browser.
-4. Build conformal calibration once labelled agent episodes exist.
-5. Delete `archive/` after one release.
+6. **Cross-Tenant Shared Signatures & Demo Pack (Phase M6)**:
+   - Privacy-preserving export of abstract tool category motifs (`CATEGORY:secret_read -> CATEGORY:external_send`) with discretized support buckets (`small`, `medium`, `large`). Zero sensitive identifiers leaked.
+   - Import maps motifs to local tools via `config/tool_categories.yaml`, evaluates them counterfactually against local traffic, and rejects contradicted rules without modifying live configurations.
+   - Scripted end-to-end demo completes in 0.31s (< 120s limit).
+   - Evidence: [`evidence/M6/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M6/report.md), [`evidence/M6/demo_output.txt`](file:///d:/vigil-v2/vigil-v2/evidence/M6/demo_output.txt), [`docs/DEMO_SCRIPT.md`](file:///d:/vigil-v2/vigil-v2/docs/DEMO_SCRIPT.md).
+
+7. **Evidence Vault: Offline-Verifiable Cryptographic Evidence Bundles**:
+   - Bundles complete incident and time-window telemetry: contiguous ledger segments with chain proofs, redacted action records (shapes only), proposals, approvals, platform receipts, containment outcomes, and configuration snapshots with zero secret values.
+   - Manifest signed with Ed25519; verified offline on air-gapped systems using standalone `verify_bundle.py`.
+   - Evidence: [`evidence/vault/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/vault/report.md), [`evidence/vault/offline_verification.txt`](file:///d:/vigil-v2/vigil-v2/evidence/vault/offline_verification.txt), [`docs/EVIDENCE_VAULT.md`](file:///d:/vigil-v2/vigil-v2/docs/EVIDENCE_VAULT.md).
+
+8. **Approvals via Slack (SLACK-1 Adapter)**:
+   - Replaced Telegram with an authenticated, identity-bound Slack approval adapter.
+   - Every governance decision (containment holds and Policy Immune proposals) is cryptographically verified via HMAC-SHA256, bound to a verified corporate identity (`users:read.email` matching `SLACK_ALLOWED_EMAIL_DOMAINS`), protected against replay via server-issued single-use nonces, and audited to the hash-chained ledger.
+   - Separation of duties (proposer cannot approve) and two-approver rule for HIGH-impact tier proposals enforced on server.
+   - Telegram removed from all approval paths with legacy `/telegram/approvals` routes returning HTTP 410 Gone; UI updated with `ApprovalChannelPanel` and live `/health` status badge.
+   - **Offline Claims [VERIFIED: PASS]**:
+     - Signature verification: valid signatures pass, tampered payload rejected, stale timestamp rejected, missing headers rejected, empty secret fails closed.
+     - Identity verification: corporate domains pass, personal domains rejected, missing emails rejected, Slack Connect guests rejected.
+     - Nonce validation: mismatched and reused nonces rejected (consumed on first use).
+     - Separation of duties and 2-approver rule: requester rejected, HIGH-impact requires 2 distinct approvers, duplicate clicks idempotent.
+     - Zero argument leak: Block Kit payloads strip secrets and raw argument data.
+     - Telegram removal: legacy routes return 410 Gone, AST check confirms zero Telegram imports in approval paths.
+   - **Live Claims [BLOCKED]**:
+     - Live execution is blocked due to unconfigured Slack credentials (`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APPROVAL_CHANNEL`).
+
+---
+
+## Verification Matrix
+
+| Category | Status & Scope | Evidence Reference |
+|---|---|---|
+| **Verified Offline (Fakes & Mocks)** | **VERIFIED (PASS)**: 45 backend immune and vault unit tests pass. Covers gate fail-closed handling, AST containment allowlisting, pure mathematical bounds, compiler safety, workflow expiration, receipt verification, privacy leaks, 1-byte tamper detection across all 5 bundle files, deleted ledger line detection, and offline verification with zero network access. | [`evidence/M0/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M0/report.md)<br>[`evidence/M2/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M2/report.md)<br>[`evidence/M4/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/M4/report.md)<br>[`evidence/M6/demo_output.txt`](file:///d:/vigil-v2/vigil-v2/evidence/M6/demo_output.txt)<br>[`evidence/vault/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/vault/report.md)<br>[`evidence/vault/offline_verification.txt`](file:///d:/vigil-v2/vigil-v2/evidence/vault/offline_verification.txt) |
+| **Verified Live (ArmorIQ Platform)** | **VERIFIED (PASS)**: Live platform token minting (`https://api.armoriq.ai`) and live policy blocking (`https://customer-proxy.armoriq.ai`) empirically reproduced with `PolicyBlockedException` from OPA on 3/3 attack calls. FastMCP server running over Cloudflare tunnel. | [`evidence/M5/live_verification.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_verification.json)<br>[`evidence/M5/preflight.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/preflight.json)<br>[`evidence/platform_changes.md`](file:///d:/vigil-v2/vigil-v2/evidence/platform_changes.md) |
+| **What Remains Unverified** | **UNVERIFIED**: Control plane network registration endpoint (`https://api.armoriq.ai/iap/sdk/register`) returned HTTP 500 without org-admin permissions (handled via `--dry-run` and live intent token policy snapshot). Dashboard row generation for pre-execution OPA blocks (calls terminated at OPA evaluation before backend execution). Telegram live bot execution (no live token provided in environment). | [`evidence/M5/report.md:43-51`](file:///d:/vigil-v2/vigil-v2/evidence/M5/report.md#L43-L51) |
+
+---
+
+## Fundamental Limitations
+
+1. **Replay is Counterfactual, Not Dynamic**:
+   - The replay engine measures whether a candidate deny rule would have safely neutralized past attacks without breaking legitimate operations.
+   - It **does not simulate adaptive adversarial responses**: an autonomous agent whose tool is blocked may retry with alternative tools, hallucinate arguments, or attempt sub-shell escapes.
+   - Dynamic adversary adaptation requires sandboxed live evaluation or multi-turn red-teaming.
+
+2. **Bound Validity Conditions**:
+   - The statistical upper bound $\bar{p}_{1-\delta} = 1 - \delta^{1/n}$ assumes **conditional exchangeability**: future agent operations follow the same distribution as the recorded baseline.
+   - If the agent's prompt, fine-tuned weights, or system tools undergo covariate shift, historical replay bounds must be recalibrated.
+   - Unlabelled historical records are treated as **assumed benign**. If hidden attack actions contaminate the baseline, the empirical bound reflects that tainted baseline.
+

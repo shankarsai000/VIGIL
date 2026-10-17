@@ -29,6 +29,7 @@ export interface VigilState {
 
   // Telegram Governed Runtime State
   telegramStatus: TelegramStatus | null;
+  approvalChannelStatus: { channel: string; status: string; mode: string; configured: boolean } | null;
   pendingApprovals: ApprovalRequest[];
   telegramUsers: TelegramUser[];
   gateMode: string;
@@ -58,7 +59,8 @@ export interface VigilState {
   setReplayIsPlaying: (isPlaying: boolean) => void;
   setActiveGraphHighlight: (highlight: string | null) => void;
 
-  // Telegram Governed Runtime Actions
+  // Approval Channel Actions
+  setApprovalChannelStatus: (status: { channel: string; status: string; mode: string; configured: boolean } | null) => void;
   setTelegramStatus: (status: TelegramStatus | null) => void;
   setPendingApprovals: (approvals: ApprovalRequest[]) => void;
   setTelegramUsers: (users: TelegramUser[]) => void;
@@ -93,6 +95,7 @@ export const useVigilStore = create<VigilState>((set) => ({
   activeGraphHighlight: null,
 
   telegramStatus: null,
+  approvalChannelStatus: null,
   pendingApprovals: [],
   telegramUsers: [],
 
@@ -196,6 +199,7 @@ export const useVigilStore = create<VigilState>((set) => ({
   
   setActiveGraphHighlight: (highlight) => set(() => ({ activeGraphHighlight: highlight })),
 
+  setApprovalChannelStatus: (status) => set(() => ({ approvalChannelStatus: status })),
   setTelegramStatus: (status) => set(() => ({ telegramStatus: status })),
 
   setPendingApprovals: (approvals) => set(() => ({ pendingApprovals: approvals })),

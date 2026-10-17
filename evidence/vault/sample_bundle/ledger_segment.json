@@ -1,0 +1,24 @@
+{
+  "chain_proof": {
+    "end_seq": 5,
+    "first_prev_hash": "24331fe729ec3df1534059a1eed3c94876f4b3a1d55c8cb05ebc7f3d7dca71fe",
+    "last_hash": "6e37ee34081bacd89e8c8d70fb1c2c65548b043bb0645c922fc6f16154c096db",
+    "start_seq": 5,
+    "total_entries": 1
+  },
+  "entries": [
+    {
+      "hash": "6e37ee34081bacd89e8c8d70fb1c2c65548b043bb0645c922fc6f16154c096db",
+      "prev_hash": "24331fe729ec3df1534059a1eed3c94876f4b3a1d55c8cb05ebc7f3d7dca71fe",
+      "record": {
+        "action": "billing_database",
+        "decision": "DENY",
+        "event": "GATE_DECISION",
+        "incident_id": "inc-sample-01",
+        "seq": 5
+      },
+      "seq": 5,
+      "ts": 1792168334.143
+    }
+  ]
+}

@@ -175,10 +175,13 @@ class AgentRegistry:
             CREATE TABLE IF NOT EXISTS governance_actions (
                 action_id TEXT PRIMARY KEY,
                 request_id TEXT NOT NULL,
-                telegram_user_id INTEGER NOT NULL,
+                provider TEXT NOT NULL DEFAULT 'slack',
+                subject_id TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
                 action TEXT NOT NULL,
                 timestamp REAL NOT NULL,
-                reason TEXT NOT NULL DEFAULT ''
+                reason TEXT NOT NULL DEFAULT '',
+                telegram_user_id INTEGER
             )
             """,
             """
@@ -789,16 +792,19 @@ class AgentRegistry:
     async def log_governance_action(self, action: GovernanceAction) -> None:
         await self.db.execute(
             """
-            INSERT INTO governance_actions (action_id, request_id, telegram_user_id, action, timestamp, reason)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO governance_actions (action_id, request_id, provider, subject_id, email, action, timestamp, reason, telegram_user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 action.action_id,
                 action.request_id,
-                action.telegram_user_id,
+                action.provider,
+                action.subject_id,
+                action.email,
                 action.action,
                 action.timestamp,
                 action.reason,
+                action.telegram_user_id,
             ),
         )
 

@@ -13,6 +13,8 @@ export const CommandBar: React.FC = () => {
     incidents,
     agents,
     telegramStatus,
+    approvalChannelStatus,
+    setApprovalChannelStatus,
     pendingApprovals,
     gateMode,
     setGateMode,
@@ -30,13 +32,19 @@ export const CommandBar: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    vigilClient.getHealth()
-      .then((h) => {
-        if (h.gate_mode) setGateMode(h.gate_mode);
-        else if (h.armoriq_mode) setGateMode(h.armoriq_mode);
-      })
-      .catch(() => {});
-  }, [setGateMode]);
+    const pollHealth = () => {
+      vigilClient.getHealth()
+        .then((h) => {
+          if (h.gate_mode) setGateMode(h.gate_mode);
+          else if (h.armoriq_mode) setGateMode(h.armoriq_mode);
+          if (h.approval_channel) setApprovalChannelStatus(h.approval_channel);
+        })
+        .catch(() => {});
+    };
+    pollHealth();
+    const interval = setInterval(pollHealth, 5000);
+    return () => clearInterval(interval);
+  }, [setGateMode, setApprovalChannelStatus]);
 
   const getEnforcementBadge = () => {
     const mode = (gateMode || '').toLowerCase();
@@ -214,12 +222,15 @@ export const CommandBar: React.FC = () => {
           );
         })()}
 
-        {/* Telegram status */}
-        <div className="flex items-center space-x-2 border-l border-vigil-border/30 pl-4 font-mono text-[10px] select-none relative">
-          <span className="text-sm">📱</span>
-          <div className={`w-2 h-2 rounded-full ${telegramStatus?.connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse' : 'bg-rose-500'}`} />
-          <span className="text-slate-400 font-semibold tracking-wider">
-            {telegramStatus?.connected ? 'BOT: ACTIVE' : 'BOT: OFFLINE'}
+        {/* Approval Channel Status */}
+        <div className="flex items-center space-x-2 border-l border-vigil-border/30 pl-4 font-mono text-[10px] select-none relative" title={`Slack Channel: ${approvalChannelStatus?.status || 'disabled'}`}>
+          <span className="text-sm">💬</span>
+          <div className={`w-2 h-2 rounded-full ${
+            approvalChannelStatus?.status === 'connected' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse' :
+            approvalChannelStatus?.status === 'configured' ? 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]' : 'bg-rose-500'
+          }`} />
+          <span className="text-slate-400 font-semibold tracking-wider uppercase">
+            SLACK: {approvalChannelStatus?.status || 'DISABLED'}
           </span>
           {pendingApprovals.length > 0 && (
             <span className="absolute -top-3.5 -right-2 bg-rose-500 text-white font-bold text-[8px] min-w-[15px] h-[15px] rounded-full flex items-center justify-center animate-bounce shadow-[0_0_8px_rgba(239,68,68,0.6)]">

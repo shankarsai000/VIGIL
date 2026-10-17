@@ -261,16 +261,25 @@ export class VIGILClient {
     return res.json();
   }
 
-  async getTelegramApprovals(): Promise<ApprovalRequest[]> {
-    const res = await fetch('/telegram/approvals');
-    if (!res.ok) throw new Error(`Failed to fetch Telegram approvals: ${res.statusText}`);
+  // Generic Approval Channel API Methods
+  async getApprovals(): Promise<ApprovalRequest[]> {
+    const res = await fetch('/approvals');
+    if (!res.ok) throw new Error(`Failed to fetch approvals: ${res.statusText}`);
     return res.json();
   }
 
-  async getAllTelegramApprovals(limit: number = 20): Promise<ApprovalRequest[]> {
-    const res = await fetch(`/telegram/approvals/all?limit=${limit}`);
-    if (!res.ok) throw new Error(`Failed to fetch all Telegram approvals: ${res.statusText}`);
+  async getAllApprovals(limit: number = 20): Promise<ApprovalRequest[]> {
+    const res = await fetch(`/approvals/all?limit=${limit}`);
+    if (!res.ok) throw new Error(`Failed to fetch all approvals: ${res.statusText}`);
     return res.json();
+  }
+
+  async getTelegramApprovals(): Promise<ApprovalRequest[]> {
+    return this.getApprovals();
+  }
+
+  async getAllTelegramApprovals(limit: number = 20): Promise<ApprovalRequest[]> {
+    return this.getAllApprovals(limit);
   }
 
   async getTelegramUsers(): Promise<TelegramUser[]> {
@@ -280,7 +289,7 @@ export class VIGILClient {
   }
 
   async resolveApproval(requestId: string, action: 'approve' | 'deny'): Promise<{ status: string; resolved_to: string }> {
-    const res = await fetch(`/telegram/approvals/${requestId}/resolve`, {
+    const res = await fetch(`/approvals/${requestId}/resolve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...operatorHeaders() },
       body: JSON.stringify({ action }),
@@ -291,7 +300,7 @@ export class VIGILClient {
   }
 
   async bulkResolveApprovals(requestIds: string[], action: 'approve' | 'deny'): Promise<{ status: string; action: string; results: any[] }> {
-    const res = await fetch('/telegram/approvals/bulk-resolve', {
+    const res = await fetch('/approvals/bulk-resolve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...operatorHeaders() },
       body: JSON.stringify({ action, request_ids: requestIds }),
@@ -373,7 +382,18 @@ export class VIGILClient {
     return res.json();
   }
 
-  async getHealth(): Promise<{ status: string; gate_mode?: string; armoriq_mode?: string; active_agents?: number }> {
+  async getHealth(): Promise<{
+    status: string;
+    gate_mode?: string;
+    armoriq_mode?: string;
+    active_agents?: number;
+    approval_channel?: {
+      channel: string;
+      status: string;
+      mode: string;
+      configured: boolean;
+    };
+  }> {
     const res = await fetch('/health');
     if (!res.ok) throw new Error(`Health check failed: ${res.statusText}`);
     return res.json();

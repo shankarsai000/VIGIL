@@ -44,6 +44,13 @@ from .verify import (
     verify_receipt,
     FakeArmorIQClient,
 )
+from .signatures import (
+    export_signature_bundle,
+    import_signature_bundle,
+    SignatureVerificationError,
+    PrivacyViolationError,
+    count_to_support_bucket,
+)
 
 __all__ = [
     "ActionRecord",
@@ -82,5 +89,11 @@ __all__ = [
     "sign_receipt",
     "verify_receipt",
     "FakeArmorIQClient",
+    "export_signature_bundle",
+    "import_signature_bundle",
+    "SignatureVerificationError",
+    "PrivacyViolationError",
+    "count_to_support_bucket",
 ]
+
 
