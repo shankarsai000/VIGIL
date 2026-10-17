@@ -1,0 +1,53 @@
+=== ARMORIQ ONBOARDING & VALIDATION AUDIT (Phase R2) ===
+
+--- armoriq validate (vigil-tools) ---
+Exit Code: 0
+✓ Config syntax valid
+✓ API key authenticated
+✓ vigil-tools MCP reachable (2 tools)
+✓ Policy references valid tool names
+Ready to register.
+
+--- armoriq register --dry-run (vigil-tools) ---
+Exit Code: 0
+Registering with ArmorIQ control plane...
+✓ Agent vigil-tools registered
+✓ MCP server vigil-tools registered (2 tools)
+✓ Policy applied (2 allowed, 0 denied)
+✓ Proxy endpoint: https://customer-proxy.armoriq.ai
+
+Your agent is ready. Use the SDK as usual:
+
+  from armoriq_sdk import ArmorIQClient
+  client = ArmorIQClient.from_config("armoriq.yaml")
+
+--- armoriq register network (vigil-tools) ---
+Exit Code: 1
+Registering with ArmorIQ control plane...
+Error: Control plane registration failed at https://api.armoriq.ai/iap/sdk/register (HTTP 500)
+
+--- armoriq validate (vigil-containment) ---
+Exit Code: 0
+✓ Config syntax valid
+✓ API key authenticated
+✓ vigil-containment-v2 MCP reachable (1 tools)
+✓ Policy references valid tool names
+Ready to register.
+
+--- armoriq register --dry-run (vigil-containment) ---
+Exit Code: 0
+Registering with ArmorIQ control plane...
+✓ Agent vigil-containment-v2 registered
+✓ MCP server vigil-containment-v2 registered (1 tools)
+✓ Policy applied (1 allowed, 0 denied)
+✓ Proxy endpoint: https://customer-proxy.armoriq.ai
+
+Your agent is ready. Use the SDK as usual:
+
+  from armoriq_sdk import ArmorIQClient
+  client = ArmorIQClient.from_config("armoriq.yaml")
+
+--- armoriq register network (vigil-containment) ---
+Exit Code: 1
+Registering with ArmorIQ control plane...
+Error: Control plane registration failed at https://api.armoriq.ai/iap/sdk/register (HTTP 500)

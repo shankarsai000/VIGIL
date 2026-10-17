@@ -6,7 +6,7 @@ identity:
 environment: production
 mcp_servers:
   - id: vigil-containment-v2
-    url: https://friday-gaming-controller-operators.trycloudflare.com/mcp
+    url: https://want-ends-fog-lightbox.trycloudflare.com/mcp
     description: VIGIL automated containment actuator
 policy:
   allow:

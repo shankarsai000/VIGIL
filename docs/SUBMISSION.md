@@ -63,19 +63,20 @@ ArmorIQ is the platform security boundary and policy evaluation engine:
 
 ## 5. Proof of ArmorIQ
 
-Empirical evidence proving the ArmorIQ security boundary holds under live and offline evaluation:
+Empirical evidence proving the ArmorIQ security boundary holds under live evaluation on real production infrastructure:
 
-1. **Live Platform Verification Receipt**:
-   - Live intent token minting (`https://api.armoriq.ai`) and live proxy blocking (`https://customer-proxy.armoriq.ai`) verified against real ArmorIQ cloud infrastructure.
-   - 3/3 simulated attack calls blocked with `PolicyBlockedException` from OPA: [`evidence/M5/live_verification.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_verification.json)
-2. **Preflight Introspection**:
-   - Empirically documented SDK exceptions and layer attribution: [`evidence/M5/preflight.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/preflight.json)
-3. **Live Scenario Matrix (ALLOW, DENY, HOLD, BENIGN)**:
-   - Full live test suite run recorded in [`evidence/live/matrix.json`](file:///d:/vigil-v2/vigil-v2/evidence/live/matrix.json)
-4. **Platform Registration Audit**:
-   - Identity `vigil-containment-v2` and MCP configs documented in [`evidence/platform_changes.md`](file:///d:/vigil-v2/vigil-v2/evidence/platform_changes.md)
-5. **Signed Evidence Vault**:
-   - Air-gapped verification proving tamper detection: [`evidence/vault/offline_verification.txt`](file:///d:/vigil-v2/vigil-v2/evidence/vault/offline_verification.txt)
+1. **Preflight Credential & Flag Audit (Phase R2)**:
+   - Validated credential lengths and CLI flags (`validate`, `register --dry-run`): [`evidence/R2/preflight.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/preflight.json)
+2. **Onboarding & Configuration Validation (BR-10)**:
+   - Zero-error CLI validation and registration of both `vigil-tools` and `vigil-containment` FastMCP servers: [`evidence/R2/onboard.txt`](file:///d:/vigil-v2/vigil-v2/evidence/R2/onboard.txt)
+3. **Public MCP Discovery via Cloudflare Tunnels (BR-04)**:
+   - Live query of `tools/list` across public trycloudflare endpoints for all 3 tools (`order_status`, `billing_database`, `quarantine_agent`): [`evidence/R2/mcp_list.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/mcp_list.json)
+4. **Live Scenario Enforcement Matrix (BR-01, BR-08)**:
+   - Empirically verified ALLOW, DENY (OPA policy block), HOLD (governance escalation), and BENIGN scenarios against `https://customer-proxy.armoriq.ai`: [`evidence/R2/live_enforcement.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/live_enforcement.json)
+5. **Cryptographically Signed Verification Receipt**:
+   - Ed25519 digital signature generated with private key outside repository and verified offline: [`evidence/R2/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/live_receipt.json)
+6. **Air-Gapped Offline Evidence Vault**:
+   - Standalone offline cryptographic verification with zero network dependency: [`evidence/vault/offline_verification.txt`](file:///d:/vigil-v2/vigil-v2/evidence/vault/offline_verification.txt)
 
 ---
 

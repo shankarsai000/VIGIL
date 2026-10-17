@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "credentials": {
+    "api_key_present": true,
+    "api_key_length": 72,
+    "user_email_present": true,
+    "user_email_length": 23,
+    "user_email_domain": "gmail.com"
+  },
+  "cli_flags": {
+    "validate": [
+      "--config CONFIG"
+    ],
+    "register": [
+      "--config CONFIG",
+      "--dry-run"
+    ]
+  },
+  "cli_help_summaries": {
+    "main": "usage: armoriq [-h] [--version]",
+    "validate": "usage: armoriq validate [-h] [--config CONFIG]",
+    "register": "usage: armoriq register [-h] [--config CONFIG] [--dry-run]"
+  }
+}

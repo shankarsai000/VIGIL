@@ -1,0 +1,87 @@
+{
+  "timestamp": 1792220649.231,
+  "mcp_servers": [
+    {
+      "server": "vigil-tools",
+      "url": "https://answer-quilt-independently-science.trycloudflare.com/mcp",
+      "status_code": 200,
+      "tools_count": 2,
+      "tools": [
+        {
+          "name": "order_status",
+          "description": "Check shipment and processing status for an order.",
+          "inputSchema": {
+            "properties": {
+              "order_id": {
+                "title": "Order Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "order_id"
+            ],
+            "title": "order_statusArguments",
+            "type": "object"
+          }
+        },
+        {
+          "name": "billing_database",
+          "description": "Execute database lookup against billing ledgers.",
+          "inputSchema": {
+            "properties": {
+              "query": {
+                "title": "Query",
+                "type": "string"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "title": "billing_databaseArguments",
+            "type": "object"
+          }
+        }
+      ]
+    },
+    {
+      "server": "vigil-containment",
+      "url": "https://want-ends-fog-lightbox.trycloudflare.com/mcp",
+      "status_code": 200,
+      "tools_count": 1,
+      "tools": [
+        {
+          "name": "quarantine_agent",
+          "description": "Quarantine one agent in VIGIL. Call only after ArmorIQ has authorized the call.",
+          "inputSchema": {
+            "properties": {
+              "agent_id": {
+                "title": "Agent Id",
+                "type": "string"
+              },
+              "reason": {
+                "title": "Reason",
+                "type": "string"
+              },
+              "score": {
+                "default": 0.0,
+                "title": "Score",
+                "type": "number"
+              }
+            },
+            "required": [
+              "agent_id",
+              "reason"
+            ],
+            "title": "quarantine_agentArguments",
+            "type": "object"
+          }
+        }
+      ]
+    }
+  ],
+  "verified_tools": [
+    "vigil-tools.order_status",
+    "vigil-tools.billing_database",
+    "vigil-containment.quarantine_agent"
+  ]
+}
