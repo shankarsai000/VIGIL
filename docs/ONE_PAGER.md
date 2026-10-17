@@ -1,56 +1,72 @@
-# VIGIL 2.0: Policy-Immune Autonomous Agent Governance
-**ArmorIQ Flow State Hackathon — Executive Overview**
+# VIGIL 3.0: Policy-Immune Autonomous Agent Governance
+**ArmorIQ Flow State Hackathon — Executive One-Pager**
 
 ---
 
-## The Vision: Safe Blocking for Autonomous AI Agents
+## 1. Executive Summary
 
-Enterprise agents operate with expanding tool access across databases, internal APIs, and messaging systems. Traditional security controls force a dangerous false choice:
-1. **Permissive Governance**: Agents operate unchecked, risking prompt injection, data exfiltration, and privilege escalation.
-2. **Aggressive Heuristic Blocking**: Naive policy rules block legitimate business operations (false-positive disruptions), destroying trust and business continuity.
+Autonomous enterprise AI agents require privileged tool access across production databases, external APIs, and internal messaging gateways. Traditional heuristic security controls force a dangerous false dichotomy:
+1. **Permissive Governance**: Unchecked agent autonomy risks prompt injection, privilege escalation, and stealth exfiltration.
+2. **Naive Heuristic Blocking**: Static rule filters disrupt legitimate business operations with false blocks, destroying reliability.
 
-**VIGIL 2.0** introduces the **Policy Immune System**, an active defense architecture native to **ArmorIQ (`armoriq-sdk==0.6.10`)**. Rather than blocking based on static heuristics, VIGIL synthesizes candidate OPA policies from security incidents, replays them counterfactually against historical agent telemetry, and deploys them to ArmorIQ **if and only if** they satisfy exact **one-sided Clopper-Pearson statistical bounds** ensuring near-zero false-positive risk.
+**VIGIL 3.0** is an enterprise-grade Policy Immune System native to **ArmorIQ (`armoriq-sdk==0.6.10`)**. Rather than blocking tools on client heuristics, VIGIL monitors decentralized information flow control (DIFC) taint, sliding window data budgets, canary tripwires, and output injections, supplying these signals to ArmorIQ as mint-time inline policies and FastMCP containment directives.
 
 ---
 
-## Architecture
+## 2. Platform Architecture
 
 ```text
-  [ Agent Tools ] <---- (Proxy: 8791) <----+
-                                           |
-  [ LLM Agent ] ----> [ ArmorIQ Gate ] ----+---> [ ArmorIQ Proxy / OPA ]
-                             |                           |
-                  (Fail-Closed Escalation)       (Policy Enforcement)
-                             v                           v
-                  [ Slack Approval Gate ]       [ FastMCP Containment ]
-                             |                      (Port: 8790)
-                             +---------------------------+
-                                                         |
-                                             [ SHA-256 Audit Ledger ]
-                                             [ Policy Immune Replay ]
+  [ External User / Prompts ]
+              |
+              v
+     [ CustomerBot ] --------(DIFC Taint: Level 3)--------+
+              |                                           |
+              v                                           v
+     [ AnalyticsAgent ] -----------------------> [ BillingAgent ]
+              |                                           |
+    (Sliding Budgets)                             (Restricted Sink)
+    (Canary Tripwires)                                    |
+              |                                           v
+              +-----------------------------> [ ArmorIQ Policy Gate ]
+                                                          |
+                                           +--------------+--------------+
+                                           |                             |
+                                  (Inline Deny OPA)            (FastMCP Containment)
+                                           v                             v
+                                 [ ArmorIQ Proxy ]            [ vigil-containment:8790 ]
+                                 (Single Authority)           - Scoped Downgrade
+                                           |                  - Mirage Honeypot
+                                           v                  - Quarantine & Rollback
+                                 [ Target Tool MCP ]                     |
+                                 (Port: 8791)                            v
+                                                              [ SHA-256 Audit Ledger ]
+                                                              [ Policy Immune Replay ]
 ```
 
 ---
 
-## Measured Results (Empirically Verified)
+## 3. Empirically Measured Results
 
-Only claims backed by empirical evidence on disk are reported as results:
+Every performance claim and metric reported below is derived directly from empirical evidence artifacts on disk:
 
-| Measured Result | Finding | Evidence Path |
-|---|---|---|
-| **Zero False-Block Safe Blocking** | Across 60 benchmark runs (215,000 benign events), VIGIL's replay gate achieved **0.0000%** false blocks ([0.000%, 0.002%] Clopper-Pearson 95% bound), completely avoiding the **3.10% to 10.85%** false-block rates of naive methods. | [`evidence/I1/results.md`](file:///d:/vigil-v2/vigil-v2/evidence/I1/results.md)<br>[`evidence/I1/results.json`](file:///d:/vigil-v2/vigil-v2/evidence/I1/results.json) |
-| **Statistical Bound Protects Sparse Traffic** | When benign traffic is constrained (<600 samples), point estimates mislead naive systems into premature rule deployment; VIGIL's Clopper-Pearson bound correctly rejected unproven candidates as `INSUFFICIENT_EVIDENCE`. | [`evidence/I1/results.md#finding-2`](file:///d:/vigil-v2/vigil-v2/evidence/I1/results.md#finding-2) |
-| **Explainable Denials (Zero Invention)** | Every ArmorIQ tool denial maps deterministically via `GET /denials/{trace_id}` to its approving proposal, rule ID, and statistical bound. Planted/unlinked denials strictly return `source: "unknown"` with 0% invented provenance. | [`evidence/P1/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/P1/report.md)<br>[`backend/tests/test_explainable_denials.py`](file:///d:/vigil-v2/vigil-v2/backend/tests/test_explainable_denials.py) |
-| **Live ArmorIQ Platform Boundary Proof** | Verified live OPA policy denial (`PolicyBlockedException: Tool 'billing_database' denied by OPA: policy_constraints_not_satisfied`) against `https://customer-proxy.armoriq.ai` with dual FastMCP servers and Ed25519 signed receipts. | [`evidence/R2/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/live_receipt.json)<br>[`evidence/R2/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/R2/report.md) |
-| **Negative Finding: Invoke-Time Enforcement** | Empirical probe of `client.get_intent_token` proved that inline deny policies are enforced by OPA downstream at `invoke`, not at mint time. In accordance with platform rules, no client-side pre-checks were built. | [`evidence/P1/mint_probe.json`](file:///d:/vigil-v2/vigil-v2/evidence/P1/mint_probe.json)<br>[`docs/INNOVATION.md`](file:///d:/vigil-v2/vigil-v2/docs/INNOVATION.md) |
+| Feature / Innovation | Empirical Finding | Status | Evidence Artifact |
+|---|---|---|---|
+| **Zero False-Block Bound** | Across 60 benchmark runs (215,000 benign events), VIGIL's replay gate achieved **0.0000%** false blocks ([0.000%, 0.002%] Clopper-Pearson 95% bound), completely avoiding the **3.10% to 10.85%** false-block rates of naive methods. | **MEASURED-OFFLINE** | [`evidence/I1/results.json`](file:///d:/vigil-v2/vigil-v2/evidence/I1/results.json)<br>[`evidence/I1/results.md`](file:///d:/vigil-v2/vigil-v2/evidence/I1/results.md) |
+| **Explainable Denials** | Every ArmorIQ tool denial maps deterministically to its approving proposal, replay coverage, and statistical bound via `GET /denials/{trace_id}` with **0% invented provenance**. | **MEASURED-OFFLINE** | [`evidence/P1/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/P1/report.md)<br>[`backend/tests/test_explainable_denials.py`](file:///d:/vigil-v2/vigil-v2/backend/tests/test_explainable_denials.py) |
+| **Live ArmorIQ Platform Gate** | Live verification against production ArmorIQ proxy (`https://customer-proxy.armoriq.ai`) proved real OPA policy enforcement (`PolicyBlockedException`) on unauthorized tool calls. | **MEASURED-LIVE** | [`evidence/R2/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/live_receipt.json)<br>[`evidence/V1/live_taint_enforcement.json`](file:///d:/vigil-v2/vigil-v2/evidence/V1/live_taint_enforcement.json) |
+| **DIFC Multi-Hop Lineage (V1)** | Monotonic taint propagation elevates Confused Deputy detection from **0.0%** to **25.0% [16.8%, 35.5%]** by attaching inline deny policies for ArmorIQ intent token minting. | **MEASURED-OFFLINE** | [`evidence/V9/results.json`](file:///d:/vigil-v2/vigil-v2/evidence/V9/results.json)<br>[`evidence/V8/scenario_5.json`](file:///d:/vigil-v2/vigil-v2/evidence/V8/scenario_5.json) |
+| **Sliding Window Budgets (V3)** | 1-minute (10 KB) and 1-hour (100 KB) sliding budgets detect low-and-slow exfiltration, elevating detection to **50.0% [39.3%, 60.7%]** while persisting aggregates only. | **MEASURED-OFFLINE** | [`evidence/V3/benchmark.json`](file:///d:/vigil-v2/vigil-v2/evidence/V3/benchmark.json)<br>[`evidence/V8/scenario_6.json`](file:///d:/vigil-v2/vigil-v2/evidence/V8/scenario_6.json) |
+| **Canary Tripwires (V3)** | Synthetic HMAC canary tokens in sandbox decoy tables detect database intrusion, escalating containment to `QUARANTINE_ROLLBACK` without real user data. | **MEASURED-OFFLINE** | [`evidence/V3/calibration.json`](file:///d:/vigil-v2/vigil-v2/evidence/V3/calibration.json)<br>[`evidence/V8/scenario_6.json`](file:///d:/vigil-v2/vigil-v2/evidence/V8/scenario_6.json) |
+| **Scanning & Schema Pinning (V4)** | Deterministic role-marker/override scanning and canonical SHA-256 schema hashing detect indirect injection and tool rug-pulls (**100.0% [95.4%, 100.0%]** detection). | **MEASURED-OFFLINE** | [`evidence/V4/output_scanning_evaluation.json`](file:///d:/vigil-v2/vigil-v2/evidence/V4/output_scanning_evaluation.json)<br>[`evidence/V9/results.json`](file:///d:/vigil-v2/vigil-v2/evidence/V9/results.json) |
+| **Antibody Synthesis & Replay (V5)** | Automated candidate rule generation with counterfactual replay over 500 benign events proves 0 false blocks before review in measured **0.0331s** (90.6x faster than proposal). | **MEASURED-OFFLINE** | [`evidence/V5/candidate_backtest.json`](file:///d:/vigil-v2/vigil-v2/evidence/V5/candidate_backtest.json)<br>[`evidence/V8/scenario_6.json`](file:///d:/vigil-v2/vigil-v2/evidence/V8/scenario_6.json) |
+| **Compensating Rollback (V6)** | Reverse Saga execution restores mutated records to verified pre-state SHA-256 hashes; uncompensatable side-effects are strictly classified as `IRREVERSIBLE`. | **MEASURED-OFFLINE** | [`evidence/V6/rollback_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/V6/rollback_receipt.json)<br>[`config/tool_compensations.yaml`](file:///d:/vigil-v2/vigil-v2/config/tool_compensations.yaml) |
 
 ---
 
-## Known Limitations & Trade-Offs
+## 4. Limitations & Operational Constraints
 
-In adherence to scientific transparency, we document the real-world operational constraints:
-
-1. **Multi-Vector Attack Coverage Tradeoff**: When an agent experiences attacks across multiple tools simultaneously, single-tool rules cover only a fraction of total attacks (50%). VIGIL's replay gate rejects rules with <90% coverage to prevent partial blocking, prioritizing zero false blocks over aggressive coverage (42.1% overall coverage vs 100% naive).
-2. **Proxy Roundtrip Latency**: Governed out-of-band containment through the ArmorIQ proxy introduces 3.5s–4.5s latency. This is optimal for containment escalation but unsuited for synchronous high-frequency micro-queries.
-3. **Fail-Closed Availability Risk**: If proxy connectivity is interrupted, the ArmorIQ Gate halts automated tool calls and escalates to operators rather than failing open.
-4. **Prior-Art Literature**: Because no external references were placed in `docs/research/`, novelty claims remain conservatively designated as **UNVERIFIED**.
+1. **Invoke-Time Enforcement Boundary (Negative Finding)**: Live probing of `client.get_intent_token` proved that ArmorIQ inline deny policies are evaluated downstream by OPA at tool invocation rather than token mint time. In accordance with Rule A (*Single Authority*), VIGIL constructs zero client-side pre-checks; only ArmorIQ blocks agent tool calls.
+2. **Single-Vector Coverage Tradeoff**: In multi-vector attack scenarios, candidate rules with <90% empirical coverage on an agent are rejected to prevent partial blocking and protect operational continuity.
+3. **Irreversible External Side-Effects**: Compensating rollback cannot undo external out-of-band actions (e.g. dispatched emails, external credit card charges); such tools are declaratively cataloged as `IRREVERSIBLE` in `config/tool_compensations.yaml`.
+4. **Fail-Closed Availability**: Under proxy network partition or malformed lineage state, VIGIL fails closed and denies or escalates to human operators rather than failing open.
+5. **Roadmap / Unverified Items**: All innovation novelty claims remain conservatively designated as **UNVERIFIED** until academic literature is cataloged in `docs/research/`.

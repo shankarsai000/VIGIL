@@ -101,21 +101,21 @@ def run_secret_scan():
     status = "CLEAN" if len(hits) == 0 else "FAIL"
     print(f"[Secret Scan] Total hits: {len(hits)} -> Status: {status}")
 
-    out_file = REPO_ROOT / "evidence" / "F1" / "secret_scan.txt"
-    out_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_file, "w", encoding="utf-8") as f:
-        f.write(f"STATUS: {status}\n")
-        f.write(f"TOTAL_HITS: {len(hits)}\n")
-        f.write(f"BASELINE_COMMIT: {baseline}\n")
-        f.write(f"TRACKED_FILES_SCANNED: {len(tracked_files)}\n\n")
-        if hits:
-            f.write("FINDINGS:\n")
-            for h in hits:
-                f.write(f"  {h[0]}: {h[1]}\n")
-        else:
-            f.write("No secrets detected across tracked files or git history since baseline.\n")
-
-    print(f"[Secret Scan] Output saved to: {out_file}")
+    for out_rel in ["evidence/F1/secret_scan.txt", "evidence/VF/secret_scan.txt"]:
+        out_file = REPO_ROOT / out_rel
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_file, "w", encoding="utf-8") as f:
+            f.write(f"STATUS: {status}\n")
+            f.write(f"TOTAL_HITS: {len(hits)}\n")
+            f.write(f"BASELINE_COMMIT: {baseline}\n")
+            f.write(f"TRACKED_FILES_SCANNED: {len(tracked_files)}\n\n")
+            if hits:
+                f.write("FINDINGS:\n")
+                for h in hits:
+                    f.write(f"  {h[0]}: {h[1]}\n")
+            else:
+                f.write("No secrets detected across tracked files or git history since baseline.\n")
+        print(f"[Secret Scan] Output saved to: {out_file}")
     if hits:
         sys.exit(1)
 

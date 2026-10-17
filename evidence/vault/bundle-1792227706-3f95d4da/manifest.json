@@ -1,0 +1,18 @@
+{
+  "bundle_id": "bundle-1792227706-3f95d4da",
+  "created_at": 1792227706.521,
+  "files": {
+    "action_records.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "config_snapshot.json": "ddea4028a46e07a9d1c93baea9e3342983aec68c516f8cded5f834a51c3ea008",
+    "containment_outcomes.json": "10937b369bafcbd46099c9ec5f121c8b37cf8cdd01fac4d0599ec6286e6eb24e",
+    "governance.json": "f6218b40e960bf4fea60352541d908fcefa5fb423cc07a119bf060c3e8e11f7a",
+    "ledger_segment.json": "52c9514a08fd2040b88af744d1a4a0454c3239b9115d7ba4459d99893175adb7"
+  },
+  "public_key_hex": "9b835a9f6eede6e730b73ba6ff3bccb8e4cd70821012514023aadc0db7902811",
+  "scope": {
+    "from_ts": 1792150000.0,
+    "incident_id": "inc-001",
+    "to_ts": 1792170000.0
+  },
+  "signature_hex": "1a0510f1ab50c3b17a9b659a61535106f32ad8c728bbf62ed3e955260bf3d9c8311815f64b17b94c858ef1b72b40a8716db1042b78084a8cc2628cd97be30600"
+}

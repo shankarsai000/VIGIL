@@ -1,0 +1,8 @@
+{
+  "containment_outcomes": [],
+  "incident_id": "inc-001",
+  "window": {
+    "from_ts": 1792150000.0,
+    "to_ts": 1792170000.0
+  }
+}

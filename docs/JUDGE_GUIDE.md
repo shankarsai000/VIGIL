@@ -118,6 +118,28 @@ uv run pytest backend/tests/
 4. **Cryptographic Ed25519 Receipts**:
    - Inspect offline-verifiable receipts signed with Ed25519 in [`evidence/R2/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/live_receipt.json).
 
+### Step 6: V3 Demo Scenarios — Confused Deputy & Low-and-Slow (~5 seconds)
+Execute the real multi-agent pipeline demonstration scenarios offline:
+```bash
+uv run python scripts/scenario_confused_deputy.py
+uv run python scripts/scenario_low_and_slow.py
+```
+**Expected Output:**
+- Scenario 5: Confused Deputy delegation detected via DIFC taint (`EXTERNAL_UNTRUSTED`), local detector score 0.0, blocked by ArmorIQ (`POLICY_BLOCKED`).
+- Scenario 6: Low-and-slow exfiltration trips sliding budget at chunk 5 (cumulative 10,240 bytes), canary trips at chunk 24, antibody synthesized in 0.0331s.
+
+---
+
+### Step 7: V3 Empirical Ablations Suite (E0 through E5) (~4 seconds)
+Run the full v3 ablation suite reproducing the 1,080-scenario benchmark across all 6 scenario families:
+```bash
+uv run python bench/v3/run_ablations.py --seed 42
+```
+**Expected Output:**
+- Evaluates E0 (0% detection) -> E1 (25%) -> E2 (50%) -> E3 (50%) -> E4 (100%) -> E5 (100%).
+- 0 false blocks across 1,000 benign events (one-sided 95% bound: 0.299%).
+- Writes `evidence/V9/results.json` and `evidence/V9/results.md`.
+
 ---
 
 ## Primary Innovation Index
@@ -128,11 +150,19 @@ uv run pytest backend/tests/
 | **Plan Vetting Live Probe** | ArmorIQ evaluates policies at invoke, not mint (documented negative finding) | [`evidence/P1/mint_probe.json`](file:///d:/vigil-v2/vigil-v2/evidence/P1/mint_probe.json) | **NEGATIVE** |
 | **Policy Immune Replay** | Clopper-Pearson bound guarantees 0.0000% false blocks vs 3.10%–10.85% naive | [`evidence/I1/results.md`](file:///d:/vigil-v2/vigil-v2/evidence/I1/results.md) | **MEASURED-OFFLINE** |
 | **Dual-MCP Containment** | Governed isolation over real ArmorIQ proxy (`customer-proxy.armoriq.ai`) | [`evidence/R2/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/R2/live_receipt.json) | **MEASURED-LIVE** |
+| **DIFC Multi-Hop Lineage (V1)** | Monotonic taint propagation catches confused deputy delegations without client-side blocking | [`evidence/V1/live_taint_enforcement.json`](file:///d:/vigil-v2/vigil-v2/evidence/V1/live_taint_enforcement.json) | **MEASURED-LIVE** |
+| **Sliding Budgets & Canaries (V3)** | Sliding 1m/1h ledgers and decoy canaries catch low-and-slow exfiltration | [`evidence/V3/benchmark.json`](file:///d:/vigil-v2/vigil-v2/evidence/V3/benchmark.json) | **MEASURED-OFFLINE** |
+| **Scanning & Schema Pinning (V4)** | Deterministic role-marker scanning and canonical SHA-256 schema pinning | [`evidence/V4/output_scanning_evaluation.json`](file:///d:/vigil-v2/vigil-v2/evidence/V4/output_scanning_evaluation.json) | **MEASURED-OFFLINE** |
+| **Antibody Synthesis (V5)** | Automated candidate rule generation backtested across 500 benign events in 0.0331s | [`evidence/V5/candidate_backtest.json`](file:///d:/vigil-v2/vigil-v2/evidence/V5/candidate_backtest.json) | **MEASURED-OFFLINE** |
+| **Compensating Rollback (V6)** | Reverse Saga execution restores pre-state SHA-256 hashes for state mutations | [`evidence/V6/rollback_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/V6/rollback_receipt.json) | **MEASURED-OFFLINE** |
 
 ---
 
 ## Honest Account of Limitations
 
-1. **Proxy Network Overhead**: Governed out-of-band actuation through proxy tunnels incurs 3.5s–4.5s latency (acceptable for containment, but high for micro-queries).
-2. **Multi-Vector Attack Coverage Tradeoff**: When an agent experiences simultaneous attacks across multiple tools, single-tool rules cover only a fraction of attacks (50%), which VIGIL intentionally rejects to prioritize operational continuity over aggressive blocking.
-3. **Novelty Literature**: Without verified external sources in `docs/research/`, prior-art novelty is conservatively designated as **UNVERIFIED**.
+1. **Invoke-Time Policy Evaluation**: ArmorIQ evaluates inline deny rules at tool invocation rather than token minting time. In compliance with platform invariants, no client-side tool pre-checks are implemented.
+2. **Proxy Network Overhead**: Governed out-of-band actuation through proxy tunnels incurs 3.5s–4.5s latency (acceptable for containment, but high for micro-queries).
+3. **Multi-Vector Attack Coverage Tradeoff**: When an agent experiences simultaneous attacks across multiple tools, single-tool rules cover only a fraction of attacks (50%), which VIGIL intentionally rejects to prioritize operational continuity over aggressive blocking.
+4. **Irreversible Real-World Operations**: External out-of-band operations (e.g. dispatched emails, wire transfers) cannot be rolled back via software compensations and are cataloged as `IRREVERSIBLE`.
+5. **Novelty Literature**: Without verified external sources in `docs/research/`, prior-art novelty is conservatively designated as **UNVERIFIED**.
+
