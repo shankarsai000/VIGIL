@@ -1,0 +1,20 @@
+{
+  "candidate": {
+    "pattern": {
+      "tool": "billing_database",
+      "argument_shape_class": "wildcard",
+      "sequence_constraint": null
+    },
+    "armoriq_constraint": "deny",
+    "rationale": "Deterministic candidate for incident family data_exfiltration targeting billing_database"
+  },
+  "benign_trials": 500,
+  "observed_false_blocks": 0,
+  "one_sided_95_upper_bound": 0.005974,
+  "attack_trials": 15,
+  "observed_attack_blocks": 15,
+  "recall": 1.0,
+  "is_ready_for_review": true,
+  "status_summary": "0 of 500; one-sided 95% upper bound 0.6% (recall: 100.0%)",
+  "rejection_reason": null
+}
