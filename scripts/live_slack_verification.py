@@ -34,6 +34,7 @@ from backend.app.channels.base import (
     ApprovalRequest as ChannelApprovalRequest,
     CallbackRejected,
     DecisionAction,
+    MessageRef,
     RequestKind,
 )
 from backend.app.channels.slack import SlackApprovalChannel

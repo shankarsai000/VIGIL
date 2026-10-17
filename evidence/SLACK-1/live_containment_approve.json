@@ -1,0 +1,11 @@
+{
+  "request_id": "req-live-1792217540",
+  "channel_redacted": "***16RY",
+  "approver_user_id_redacted": "***T0N9",
+  "approver_email": "slssaishankar@gmail.com",
+  "action": "APPROVE",
+  "containment_outcome": "QUARANTINE",
+  "ledger_seq": 10817,
+  "ledger_hash": "05e4e59ffe13baf651c5851f35e4410efeb4757139bcc0df2f0e98ba676afaf1",
+  "timestamp": 1792217753.7044196
+}

@@ -2,6 +2,6 @@
   "user_id_redacted": "***T0N9",
   "rejection_reason": "Email domain 'gmail.com' is not authorized to approve",
   "state_changed": false,
-  "ledger_seq": 10813,
-  "timestamp": 1792216857.0173995
+  "ledger_seq": 10818,
+  "timestamp": 1792217756.2423637
 }

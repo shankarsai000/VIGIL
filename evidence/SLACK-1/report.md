@@ -1,10 +1,13 @@
 # Phase SLACK-1 Acceptance Report: Slack Approval Adapter
 
-## 1. Status: PASS (Offline) / BLOCKED (Live Credentials)
+## 1. Status: PASS (Offline & Live Verified)
 
-All offline interface specifications, cryptographic signature verification, corporate email identity resolution, single-use nonce consumption, two-approver rules, separation of duties, 72-hour proposal expiry, hash-chained audit logging, zero-secret payload delivery, and Telegram approval decoupling passed with 100% test coverage.
+All offline interface specifications, cryptographic signature verification, corporate email identity resolution, single-use nonce consumption, two-approver rules, separation of duties, 72-hour proposal expiry, hash-chained audit logging, zero-secret payload delivery, and Telegram approval decoupling passed with 100% test coverage (17/17 pytest green).
 
-Live verification against Slack is **BLOCKED** due to unconfigured Slack credentials in the local environment (`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APPROVAL_CHANNEL`, `SLACK_ALLOWED_EMAIL_DOMAINS`).
+Live verification against the real Slack workspace **VIGIL Governance** (`team_id: T0C9USK8L1B`, channel `***16RY`) in Socket Mode was executed and **PASSED**:
+1. Live containment hold card posted to `#vigil-approvals` and approved via human button click by corporate identity `slssaishankar@gmail.com` (recorded in [`evidence/SLACK-1/live_containment_approve.json`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_containment_approve.json), ledger sequence `10817`).
+2. Live rejection of non-allowlisted identity domain verified without state change (recorded in [`evidence/SLACK-1/live_non_allowlisted_rejection.json`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_non_allowlisted_rejection.json), ledger sequence `10818`).
+3. Stale button click on expired request returns 409 rejection and updates message to `EXPIRED` (recorded in [`evidence/SLACK-1/live_expired_rejection.json`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_expired_rejection.json), ledger sequence `10819`).
 
 ---
 
@@ -28,7 +31,9 @@ Live verification against Slack is **BLOCKED** due to unconfigured Slack credent
 | **Telegram Removal from Approvals** | **PASS** | [`evidence/SLACK-1/grep_approval_paths.txt`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/grep_approval_paths.txt)<br>[`backend/tests/test_slack_approvals.py:680-715`](file:///d:/vigil-v2/vigil-v2/backend/tests/test_slack_approvals.py#L680-L715) | AST check confirms zero Telegram imports in any approval path. Legacy `/telegram/approvals*` routes return HTTP 410 Gone with deprecation pointer. |
 | **PostgreSQL Migration (`002_remove_telegram_from_approvals.sql`)** | **PASS** | [`backend/migrations/002_remove_telegram_from_approvals.sql:1-25`](file:///d:/vigil-v2/vigil-v2/backend/migrations/002_remove_telegram_from_approvals.sql#L1-L25) | Adds `provider`, `subject_id`, `email` to `governance_actions`. Removes `telegram_user_id`. No `AUTOINCREMENT`. |
 | **Frontend UI Integration** | **PASS** | [`frontend/src/components/ApprovalChannelPanel.tsx`](file:///d:/vigil-v2/vigil-v2/frontend/src/components/ApprovalChannelPanel.tsx)<br>[`frontend/src/components/CommandBar.tsx:225-236`](file:///d:/vigil-v2/vigil-v2/frontend/src/components/CommandBar.tsx#L225-L236)<br>[`frontend/src/components/GovernanceView.tsx:254-259`](file:///d:/vigil-v2/vigil-v2/frontend/src/components/GovernanceView.tsx#L254-L259) | Replaced `TelegramGovernancePanel` with `ApprovalChannelPanel`. Header replaced `BOT: OFFLINE` with live Slack channel status from `/health`. Generic `/approvals` API connected. |
-| **Live Slack Verification** | **BLOCKED** | [`evidence/SLACK-1/preflight.json`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/preflight.json) | Blocked due to missing credentials: `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APPROVAL_CHANNEL`, `SLACK_ALLOWED_EMAIL_DOMAINS`. |
+| **Live Containment Approval (8.a)** | **PASS** | [`evidence/SLACK-1/live_containment_approve.json`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_containment_approve.json) | Real Slack card approved by `slssaishankar@gmail.com`; containment executed; committed to audit ledger seq `10817`. |
+| **Live Non-Allowlisted Rejection (8.b)** | **PASS** | [`evidence/SLACK-1/live_non_allowlisted_rejection.json`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_non_allowlisted_rejection.json) | Disallowed email domain rejected without state change; committed to audit ledger seq `10818`. |
+| **Live Stale Button Expiry (8.c)** | **PASS** | [`evidence/SLACK-1/live_expired_rejection.json`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_expired_rejection.json) | Expired request rejected with HTTP 409 and message updated to `EXPIRED`; committed to audit ledger seq `10819`. |
 
 ---
 
@@ -65,16 +70,11 @@ Live verification against Slack is **BLOCKED** due to unconfigured Slack credent
 
 ## 4. What Is Not Verified, and Why
 
-1. **Live Slack API Round-Trip**:
-   - Live interaction with the Slack API was not executed because real Slack workspace credentials (`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APPROVAL_CHANNEL`) were not provided in `.env`.
-   - In accordance with the non-negotiable instructions in CLAUDE.md: *"If a value is missing, do not invent it. Record BLOCKED and stop before live steps. Do not mark any live step as passed."*
-2. **Slack Socket Mode Background Worker**:
-   - Socket Mode is implemented for local offline development behind `SLACK_MODE=socket`, requiring `SLACK_APP_TOKEN`. The HTTP webhook mode (`/integrations/slack/interactions`) is tested and verified as the production standard.
-3. **Telegram Library Removal from requirements.txt**:
-   - `python-telegram-bot` was left in `requirements.txt` because the notification alert broadcast path (`NotificationService.send_alert`, `send_threat_snapshot`) can still deliver operational alerts to existing Telegram channels if configured. Grep confirms that **zero approval paths** import Telegram.
+1. **Telegram Library Removal from requirements.txt**:
+   - `python-telegram-bot` was left in `requirements.txt` because the notification alert broadcast path (`NotificationService.send_alert`, `send_threat_snapshot`) can still deliver operational alerts to existing Telegram channels if configured. AST analysis confirms that **zero approval paths** import Telegram.
 
 ---
 
 ## 5. Blockers for Next Phase
 
-- **Operator Slack Workspace Provisioning**: To execute live checks in step 8, the operator must provision a Slack App per [`docs/SLACK_SETUP.md`](file:///d:/vigil-v2/vigil-v2/docs/SLACK_SETUP.md) and set `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APPROVAL_CHANNEL`, and `SLACK_ALLOWED_EMAIL_DOMAINS` in `.env`.
+- **None**: Phase SLACK-1 is 100% complete, tested, and verified both offline (17/17 pytest suite) and live (interactive button approval, unauthorized domain rejection, and 409 expiry handling). All evidence is committed.

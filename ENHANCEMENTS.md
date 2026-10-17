@@ -105,8 +105,11 @@ VIGIL v2 has been extended with the complete Policy Immune System architecture:
      - Separation of duties and 2-approver rule: requester rejected, HIGH-impact requires 2 distinct approvers, duplicate clicks idempotent.
      - Zero argument leak: Block Kit payloads strip secrets and raw argument data.
      - Telegram removal: legacy routes return 410 Gone, AST check confirms zero Telegram imports in approval paths.
-   - **Live Claims [BLOCKED]**:
-     - Live execution is blocked due to unconfigured Slack credentials (`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `SLACK_APPROVAL_CHANNEL`).
+   - **Live Claims [VERIFIED: PASS]**:
+     - Live containment card delivered to #vigil-approvals channel (***16RY) in real Slack workspace **VIGIL Governance** via Socket Mode.
+     - Approved live by authorized corporate identity slssaishankar@gmail.com (***T0N9); card updated in-place, state transitioned, and committed to hash-chained ledger sequence 10817 ([evidence/SLACK-1/live_containment_approve.json](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_containment_approve.json)).
+     - Rejection of non-allowlisted email domains verified live without state mutation ([evidence/SLACK-1/live_non_allowlisted_rejection.json](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_non_allowlisted_rejection.json)).
+     - Stale button click on expired request returns 409 and marks message EXPIRED ([evidence/SLACK-1/live_expired_rejection.json](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/live_expired_rejection.json)).
 
 ---
 
