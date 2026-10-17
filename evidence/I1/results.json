@@ -1,0 +1,474 @@
+{
+  "metadata": {
+    "seed": 42,
+    "num_runs": 20,
+    "timestamp": 1792222019.154,
+    "methods": [
+      "B0",
+      "B1",
+      "B2",
+      "B3",
+      "A1",
+      "A2"
+    ],
+    "scenarios": [
+      "distinct_tools",
+      "shared_tools",
+      "sparse_benign"
+    ]
+  },
+  "scenario_results": {
+    "distinct_tools": {
+      "name": "Distinct Attack Tools",
+      "description": "Standard 6 attack families with separate tools from legitimate benign baseline",
+      "methods": {
+        "B0": {
+          "attacks_total": 6000,
+          "attacks_blocked": 0,
+          "coverage_mean": 0.0,
+          "coverage_95_ci": [
+            0.0,
+            0.0006
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 0.0,
+          "latency_ms_mean": 0.0
+        },
+        "B1": {
+          "attacks_total": 6000,
+          "attacks_blocked": 6000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9994,
+            1.0
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 6.0,
+          "latency_ms_mean": 0.12
+        },
+        "B2": {
+          "attacks_total": 6000,
+          "attacks_blocked": 6000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9994,
+            1.0
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 6.0,
+          "latency_ms_mean": 0.05
+        },
+        "B3": {
+          "attacks_total": 6000,
+          "attacks_blocked": 4000,
+          "coverage_mean": 0.6667,
+          "coverage_95_ci": [
+            0.6546,
+            0.6785
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 4.0,
+          "latency_ms_mean": 44.23
+        },
+        "A1": {
+          "attacks_total": 6000,
+          "attacks_blocked": 4000,
+          "coverage_mean": 0.6667,
+          "coverage_95_ci": [
+            0.6546,
+            0.6785
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 4.0,
+          "latency_ms_mean": 42.03
+        },
+        "A2": {
+          "attacks_total": 6000,
+          "attacks_blocked": 6000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9994,
+            1.0
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 6.0,
+          "latency_ms_mean": 40.14
+        }
+      }
+    },
+    "shared_tools": {
+      "name": "Dual-Use / Shared Tools",
+      "description": "Attack telemetry includes attacks targeting legitimately used tools (e.g. send_email)",
+      "methods": {
+        "B0": {
+          "attacks_total": 7000,
+          "attacks_blocked": 0,
+          "coverage_mean": 0.0,
+          "coverage_95_ci": [
+            0.0,
+            0.0005
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 0.0,
+          "latency_ms_mean": 0.0
+        },
+        "B1": {
+          "attacks_total": 7000,
+          "attacks_blocked": 7000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9995,
+            1.0
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 6660,
+          "false_block_rate": 0.0666,
+          "false_block_clopper_pearson_95": [
+            0.065062,
+            0.068163
+          ],
+          "num_rules_mean": 7.0,
+          "latency_ms_mean": 0.12
+        },
+        "B2": {
+          "attacks_total": 7000,
+          "attacks_blocked": 7000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9995,
+            1.0
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 23320,
+          "false_block_rate": 0.2332,
+          "false_block_clopper_pearson_95": [
+            0.230582,
+            0.235834
+          ],
+          "num_rules_mean": 7.0,
+          "latency_ms_mean": 0.05
+        },
+        "B3": {
+          "attacks_total": 7000,
+          "attacks_blocked": 4000,
+          "coverage_mean": 0.5714,
+          "coverage_95_ci": [
+            0.5598,
+            0.583
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 4.0,
+          "latency_ms_mean": 44.03
+        },
+        "A1": {
+          "attacks_total": 7000,
+          "attacks_blocked": 4000,
+          "coverage_mean": 0.5714,
+          "coverage_95_ci": [
+            0.5598,
+            0.583
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            3.7e-05
+          ],
+          "num_rules_mean": 4.0,
+          "latency_ms_mean": 47.31
+        },
+        "A2": {
+          "attacks_total": 7000,
+          "attacks_blocked": 7000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9995,
+            1.0
+          ],
+          "benign_total": 100000,
+          "benign_blocked": 6660,
+          "false_block_rate": 0.0666,
+          "false_block_clopper_pearson_95": [
+            0.065062,
+            0.068163
+          ],
+          "num_rules_mean": 7.0,
+          "latency_ms_mean": 46.46
+        }
+      }
+    },
+    "sparse_benign": {
+      "name": "Sparse Baseline Traffic",
+      "description": "Low benign event count (<600/agent) evaluating statistical bound behavior under data sparsity",
+      "methods": {
+        "B0": {
+          "attacks_total": 6000,
+          "attacks_blocked": 0,
+          "coverage_mean": 0.0,
+          "coverage_95_ci": [
+            0.0,
+            0.0006
+          ],
+          "benign_total": 15000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            0.000246
+          ],
+          "num_rules_mean": 0.0,
+          "latency_ms_mean": 0.0
+        },
+        "B1": {
+          "attacks_total": 6000,
+          "attacks_blocked": 6000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9994,
+            1.0
+          ],
+          "benign_total": 15000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            0.000246
+          ],
+          "num_rules_mean": 6.0,
+          "latency_ms_mean": 0.09
+        },
+        "B2": {
+          "attacks_total": 6000,
+          "attacks_blocked": 6000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9994,
+            1.0
+          ],
+          "benign_total": 15000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            0.000246
+          ],
+          "num_rules_mean": 6.0,
+          "latency_ms_mean": 0.04
+        },
+        "B3": {
+          "attacks_total": 6000,
+          "attacks_blocked": 0,
+          "coverage_mean": 0.0,
+          "coverage_95_ci": [
+            0.0,
+            0.0006
+          ],
+          "benign_total": 15000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            0.000246
+          ],
+          "num_rules_mean": 0.0,
+          "latency_ms_mean": 8.02
+        },
+        "A1": {
+          "attacks_total": 6000,
+          "attacks_blocked": 4000,
+          "coverage_mean": 0.6667,
+          "coverage_95_ci": [
+            0.6546,
+            0.6785
+          ],
+          "benign_total": 15000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            0.000246
+          ],
+          "num_rules_mean": 4.0,
+          "latency_ms_mean": 7.71
+        },
+        "A2": {
+          "attacks_total": 6000,
+          "attacks_blocked": 6000,
+          "coverage_mean": 1.0,
+          "coverage_95_ci": [
+            0.9994,
+            1.0
+          ],
+          "benign_total": 15000,
+          "benign_blocked": 0,
+          "false_block_rate": 0.0,
+          "false_block_clopper_pearson_95": [
+            0.0,
+            0.000246
+          ],
+          "num_rules_mean": 6.0,
+          "latency_ms_mean": 7.55
+        }
+      }
+    }
+  },
+  "aggregated_results": {
+    "B0": {
+      "attacks_total": 19000,
+      "attacks_blocked": 0,
+      "coverage_mean": 0.0,
+      "coverage_95_ci": [
+        0.0,
+        0.0002
+      ],
+      "benign_total": 215000,
+      "benign_blocked": 0,
+      "false_block_rate": 0.0,
+      "false_block_clopper_pearson_95": [
+        0.0,
+        1.7e-05
+      ],
+      "num_rules_mean": 0.0,
+      "latency_ms_mean": 0.0
+    },
+    "B1": {
+      "attacks_total": 19000,
+      "attacks_blocked": 19000,
+      "coverage_mean": 1.0,
+      "coverage_95_ci": [
+        0.9998,
+        1.0
+      ],
+      "benign_total": 215000,
+      "benign_blocked": 6660,
+      "false_block_rate": 0.030977,
+      "false_block_clopper_pearson_95": [
+        0.030248,
+        0.031718
+      ],
+      "num_rules_mean": 6.33,
+      "latency_ms_mean": 0.11
+    },
+    "B2": {
+      "attacks_total": 19000,
+      "attacks_blocked": 19000,
+      "coverage_mean": 1.0,
+      "coverage_95_ci": [
+        0.9998,
+        1.0
+      ],
+      "benign_total": 215000,
+      "benign_blocked": 23320,
+      "false_block_rate": 0.108465,
+      "false_block_clopper_pearson_95": [
+        0.107154,
+        0.109787
+      ],
+      "num_rules_mean": 6.33,
+      "latency_ms_mean": 0.04
+    },
+    "B3": {
+      "attacks_total": 19000,
+      "attacks_blocked": 8000,
+      "coverage_mean": 0.4211,
+      "coverage_95_ci": [
+        0.414,
+        0.4281
+      ],
+      "benign_total": 215000,
+      "benign_blocked": 0,
+      "false_block_rate": 0.0,
+      "false_block_clopper_pearson_95": [
+        0.0,
+        1.7e-05
+      ],
+      "num_rules_mean": 2.67,
+      "latency_ms_mean": 32.09
+    },
+    "A1": {
+      "attacks_total": 19000,
+      "attacks_blocked": 12000,
+      "coverage_mean": 0.6316,
+      "coverage_95_ci": [
+        0.6247,
+        0.6384
+      ],
+      "benign_total": 215000,
+      "benign_blocked": 0,
+      "false_block_rate": 0.0,
+      "false_block_clopper_pearson_95": [
+        0.0,
+        1.7e-05
+      ],
+      "num_rules_mean": 4.0,
+      "latency_ms_mean": 32.35
+    },
+    "A2": {
+      "attacks_total": 19000,
+      "attacks_blocked": 19000,
+      "coverage_mean": 1.0,
+      "coverage_95_ci": [
+        0.9998,
+        1.0
+      ],
+      "benign_total": 215000,
+      "benign_blocked": 6660,
+      "false_block_rate": 0.030977,
+      "false_block_clopper_pearson_95": [
+        0.030248,
+        0.031718
+      ],
+      "num_rules_mean": 6.33,
+      "latency_ms_mean": 31.38
+    }
+  }
+}
