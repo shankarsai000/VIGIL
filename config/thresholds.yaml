@@ -1,0 +1,114 @@
+# VIGIL Consolidated Thresholds Specification (config/thresholds.yaml)
+# Every value in this table has an authoritative source or is explicitly marked PROPOSED.
+# P0 Invariants: No direct status writes, no timer-based release, single gate enforcement path.
+
+detection:
+  # Base threat detection layer
+  anomaly_score_threshold:
+    value: 0.45
+    source: "backend/app/runtime/threat_monitor.py:77"
+    description: "Isolation Forest and heuristic anomaly score threshold to flag security incident"
+
+containment_ladder:
+  # Graduated containment tiers (Phase V2)
+  log_only_ceiling:
+    value: 0.45
+    status: "PROPOSED"
+    owned_by_phase: "V2"
+    source: "docs/research/VIGIL_v3_proposal.md (reconciled with threat_monitor 0.45)"
+    description: "Threat scores below 0.45 generate audit logs only"
+  surgical_downgrade_range:
+    min: 0.45
+    max: 0.75
+    status: "PROPOSED"
+    owned_by_phase: "V2"
+    source: "docs/research/VIGIL_v3_proposal.md"
+    description: "Session scope downgrade: strip write/admin tools, retain read/faq tools"
+  mirage_honeypot_range:
+    min: 0.75
+    max: 0.90
+    status: "PROPOSED"
+    owned_by_phase: "V2"
+    source: "docs/research/VIGIL_v3_proposal.md (reconciled with gate kill threshold)"
+    description: "Redirect session to synthetic sandbox mirage database to observe TTPs"
+  quarantine_rollback_threshold:
+    value: 0.90
+    status: "PROPOSED"
+    owned_by_phase: "V2"
+    source: "docs/research/VIGIL_v3_proposal.md"
+    description: "Full agent quarantine and backward compensating rollback trigger"
+
+provenance_and_lineage:
+  # Lineage graph limits (Phase V1)
+  max_delegation_depth:
+    value: 6
+    status: "PROPOSED"
+    owned_by_phase: "V1"
+    source: "docs/research/VIGIL_v3_proposal.md:6"
+    description: "Maximum allowable agent delegation hops before lineage is marked DEGRADED"
+  restricted_sink_ceilings:
+    billing_database:
+      ceiling: "VERIFIED_INTERNAL"
+      source: "docs/research/VIGIL_v3_proposal.md:6"
+    export_financial_records:
+      ceiling: "SYSTEM_TRUSTED"
+      source: "docs/research/VIGIL_v3_proposal.md:6"
+    iam_role_grant:
+      ceiling: "SYSTEM_TRUSTED"
+      source: "docs/research/VIGIL_v3_proposal.md:6"
+
+low_and_slow_budgets:
+  # Sliding window exfiltration budgets (Phase V3)
+  window_1m_bytes_max:
+    value: 10240  # 10 KB
+    status: "PROPOSED"
+    owned_by_phase: "V3"
+    source: "calibrated in Phase V3 benchmark"
+    description: "Maximum cumulative returned payload bytes over a 1-minute sliding window"
+  window_1h_bytes_max:
+    value: 102400 # 100 KB
+    status: "PROPOSED"
+    owned_by_phase: "V3"
+    source: "calibrated in Phase V3 benchmark"
+    description: "Maximum cumulative returned payload bytes over a 1-hour sliding window"
+  shannon_entropy_threshold:
+    value: 5.8
+    status: "PROPOSED"
+    owned_by_phase: "V3"
+    source: "calibrated in Phase V3 benchmark"
+    description: "Shannon entropy threshold over returned bytes indicating encrypted/exfiltrated blobs"
+  canary_hit_trigger_count:
+    value: 1
+    status: "PROPOSED"
+    owned_by_phase: "V3"
+    source: "docs/research/VIGIL_v3_proposal.md:3"
+    description: "1 canary token access immediately triggers QUARANTINE_ROLLBACK"
+
+policy_immune:
+  # Replay engine and candidate backtesting (Phases M2, M3, V5)
+  min_coverage:
+    value: 0.90
+    source: "backend/app/immune/replay.py:153"
+    description: "Minimum empirical attack coverage required for candidate rule acceptance"
+  max_false_block_upper:
+    value: 0.005
+    source: "backend/app/immune/replay.py:153"
+    description: "Maximum allowable one-sided Clopper-Pearson 95% upper bound on false blocks (0.5%)"
+  min_benign_records:
+    value: 600
+    source: "backend/app/immune/replay.py:151"
+    description: "Minimum benign historical baseline events required to compute valid statistical bound"
+  min_attack_records:
+    value: 3
+    source: "backend/app/immune/replay.py:151"
+    description: "Minimum attack records required to evaluate coverage"
+  delta_significance:
+    value: 0.05
+    source: "backend/app/immune/replay.py:60"
+    description: "Statistical significance level (1 - delta = 0.95 confidence level)"
+  antibody_backtest_window:
+    value: 500
+    status: "PROPOSED"
+    owned_by_phase: "V5"
+    source: "docs/research/VIGIL_v3_proposal.md:3"
+    description: "Number of preceding benign records replayed for auto-antibody candidate validation"
