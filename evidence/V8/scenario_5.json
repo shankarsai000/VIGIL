@@ -2,8 +2,8 @@
   "scenario": 5,
   "name": "CONFUSED_DEPUTY",
   "ticket_id": 8821,
-  "timestamp": 1792227747.3222964,
-  "trace_id": "trace-v8-sc5-1792227747",
+  "timestamp": 1792231187.9544487,
+  "trace_id": "trace-v8-sc5-1792231187",
   "delegation_chain": [
     {
       "from": null,
@@ -34,7 +34,7 @@
     ],
     "reason": "DIFC taint violation: tool 'billing_database' requires taint <= VERIFIED_INTERNAL, but trace carries EXTERNAL_UNTRUSTED"
   },
-  "token_id": "token-sim-92227747",
+  "token_id": "token-sim-92231187",
   "armoriq_decision": "POLICY_BLOCKED",
   "enforcement_status": "ARMORIQ_ENFORCED",
   "exception": {

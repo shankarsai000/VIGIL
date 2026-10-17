@@ -156,7 +156,8 @@ class ArmorClawService:
         ]
         for sig in hard_neg_sigs:
             if re.search(sig, prompt_lower):
-                return 0.75, self.label_mapping.get("2", "HARD_NEGATIVE")
+                from ..app.runtime.thresholds import SystemThresholds
+                return SystemThresholds.downgrade_max(), self.label_mapping.get("2", "HARD_NEGATIVE")
 
         # 5. Benign operations (BENIGN_OPERATION = "0")
         return 0.05, self.label_mapping.get("0", "BENIGN_OPERATION")
@@ -176,9 +177,10 @@ class ArmorClawService:
         governance_category = gov_mapping.get(label, "PERMITTED")
         
         # Risk level determination based on score
-        if score >= 0.85:
+        from ..app.runtime.thresholds import SystemThresholds
+        if score >= SystemThresholds.quarantine():
             risk_level = "CRITICAL"
-        elif score >= 0.65:
+        elif score >= SystemThresholds.escalate():
             risk_level = "HIGH"
         elif score >= 0.30:
             risk_level = "MEDIUM"

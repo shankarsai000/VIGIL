@@ -45,12 +45,12 @@ def load_containment_thresholds(config_path: Optional[Path] = None) -> Dict[str,
     
     ladder = data.get("containment_ladder", {})
     return {
-        "log_only_ceiling": float(ladder.get("log_only_ceiling", {}).get("value", 0.45)),
-        "downgrade_min": float(ladder.get("surgical_downgrade_range", {}).get("min", 0.45)),
-        "downgrade_max": float(ladder.get("surgical_downgrade_range", {}).get("max", 0.75)),
-        "shadow_min": float(ladder.get("mirage_honeypot_range", {}).get("min", 0.75)),
-        "shadow_max": float(ladder.get("mirage_honeypot_range", {}).get("max", 0.90)),
-        "quarantine_min": float(ladder.get("quarantine_rollback_threshold", {}).get("value", 0.90)),
+        "log_only_ceiling": float(ladder["log_only_ceiling"]["value"]),
+        "downgrade_min": float(ladder["surgical_downgrade_range"]["min"]),
+        "downgrade_max": float(ladder["surgical_downgrade_range"]["max"]),
+        "shadow_min": float(ladder["mirage_honeypot_range"]["min"]),
+        "shadow_max": float(ladder["mirage_honeypot_range"]["max"]),
+        "quarantine_min": float(ladder["quarantine_rollback_threshold"]["value"]),
     }
 
 
@@ -77,7 +77,7 @@ def select_containment_tier(
     elif score >= thresh["downgrade_min"]:
         return ContainmentTier.DOWNGRADE_SCOPE
     else:
-        # Score below 0.45:
+        # Score below log_only_ceiling:
         # Critical agents must never receive LOG_ONLY -> elevated to DOWNGRADE_SCOPE
         if str(criticality).strip().upper() == "CRITICAL":
             return ContainmentTier.DOWNGRADE_SCOPE

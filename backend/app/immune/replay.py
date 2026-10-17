@@ -144,13 +144,12 @@ class ReplayEngine:
         false_block_upper = compute_false_block_upper(benign_blocked, benign_total, delta=self.delta)
 
         # 6. Determine Status
-        # Rules:
-        # ACCEPT if coverage >= 0.90, false_block_upper <= 0.005, benign_total >= 600, and attacks_total >= 3.
-        # INSUFFICIENT_EVIDENCE if a sample threshold fails.
-        # REJECT if coverage or the bound fails with enough data.
-        if benign_total < 600 or attacks_total < 3:
+        # Rules from config/thresholds.yaml:
+        # ACCEPT if coverage >= min_coverage, false_block_upper <= max_false_block_upper, benign_total >= min_benign_records.
+        from ..runtime.thresholds import SystemThresholds
+        if benign_total < SystemThresholds.min_benign_records() or attacks_total < 3:
             status = "INSUFFICIENT_EVIDENCE"
-        elif coverage >= 0.90 and false_block_upper <= 0.005:
+        elif coverage >= SystemThresholds.min_coverage() and false_block_upper <= SystemThresholds.max_false_block_upper():
             status = "ACCEPT"
         else:
             status = "REJECT"

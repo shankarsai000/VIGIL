@@ -173,12 +173,14 @@ class BehavioralMonitor:
         # 6. Database log the event along with score
         await self.registry.log_event(event, score=detection_result.score)
 
-        # 7. Act on threats above baseline threshold (0.45)
+        # 7. Act on threats above baseline threshold
         action_taken = None
         remediation_result = None
-        if detection_result.score >= 0.45:
+        from ..runtime.thresholds import SystemThresholds
+        anomaly_thresh = SystemThresholds.anomaly_score()
+        if detection_result.score >= anomaly_thresh:
             logger.warning(
-                f"[Monitor] High threat threshold breached ({detection_result.score:.2f} >= 0.45) "
+                f"[Monitor] High threat threshold breached ({detection_result.score:.2f} >= {anomaly_thresh}) "
                 f"for agent '{agent_id}'. Engaging Remediation..."
             )
             remediation_result = await self.executor.respond(event, detection_result, profile)

@@ -37,11 +37,12 @@ class Confidence(str, Enum):
     @classmethod
     def from_score(cls, score: float) -> "Confidence":
         """Maps a float score to the appropriate confidence level."""
-        if score >= 0.85:
+        from .thresholds import SystemThresholds
+        if score >= SystemThresholds.quarantine():
             return cls.CRITICAL
-        elif score >= 0.65:
+        elif score >= SystemThresholds.escalate():
             return cls.HIGH
-        elif score >= 0.45:
+        elif score >= SystemThresholds.anomaly_score():
             return cls.MEDIUM
         else:
             return cls.LOW

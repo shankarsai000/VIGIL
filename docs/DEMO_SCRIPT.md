@@ -77,7 +77,7 @@ A timed 85-second script for the official demonstration video of the VIGIL 2.0 P
   2. Budget ledger tracks sliding 1-minute window ceiling of 10240 bytes (from evidence: `evidence/V8/scenario_6.json`).
   3. First alert triggers at chunk 5 at cumulative 10240 bytes (from evidence: `evidence/V8/scenario_6.json`), selecting containment tier `DOWNGRADE_SCOPE`.
   4. Canary tripwire trips at chunk 24 on token canary_token_0 (from evidence: `evidence/V8/scenario_6.json`), escalating containment tier to `QUARANTINE_ROLLBACK`.
-  5. Automated antibody engine synthesizes candidate rule and evaluates counterfactual replay across 500 benign trials (from evidence: `evidence/V8/scenario_6.json`).
-  6. Candidate achieves 0 false blocks with one-sided 95% upper bound of 0.005974 and recall 1.0 (from evidence: `evidence/V8/scenario_6.json`).
-  7. Pipeline synthesis completed in measured 0.0331 seconds, compared to 3.0 seconds claimed in proposal (speedup: 90.6x faster, from evidence: `evidence/V8/scenario_6.json`).
+  5. Automated antibody engine synthesizes candidate rule and evaluates counterfactual replay across 600 benign trials (from evidence: `evidence/V8/scenario_6.json`).
+  6. Candidate achieves 0 false blocks with one-sided 95% upper bound of 0.00498 and recall 1.0 (from evidence: `evidence/V8/scenario_6.json`).
+  7. Pipeline synthesis completed in measured 0.0331 seconds, compared to 3.0 seconds claimed in proposal (from evidence: `evidence/V8/scenario_6.json`).
 

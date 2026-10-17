@@ -156,7 +156,8 @@ class TelegramGateway:
             }
             
         elif verdict == GovernanceVerdict.REQUIRE_APPROVAL:
-            proposed_action = "QUARANTINE" if threat_score >= 0.85 else "ALERT"
+            from .thresholds import SystemThresholds
+            proposed_action = "QUARANTINE" if threat_score >= SystemThresholds.quarantine() else "ALERT"
             approval_request = ApprovalRequest(
                 incident_id=str(uuid4()),
                 agent_id=agent_id,

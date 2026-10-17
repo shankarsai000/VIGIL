@@ -113,8 +113,8 @@ async def run_live_verification():
         score=0.94,
         threat_type=ThreatType.DATA_EXFILTRATION,
         confidence=Confidence.CRITICAL,
-        rule_score=0.9,
-        ewma_score=0.85,
+        rule_score=0.91,
+        ewma_score=0.84,
         iforest_score=0.8,
         details={"target": "billing_database"},
     )

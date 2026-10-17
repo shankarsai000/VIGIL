@@ -57,11 +57,9 @@ class PromptMutationService:
         dist = self._levenshtein_distance(baseline_prompt, incoming_prompt)
         sim = self._similarity_score(baseline_prompt, incoming_prompt, dist)
         
-        # Mutation threshold: if prompt similarity is less than 0.70 (30% changed) or greater than 0.05 change (to detect subtle injections)
-        # Usually, adversarial prompts are mutated but stay similar, or drift significantly.
-        # Let's say if the prompt changed by more than 15% (similarity < 0.85), but isn't a completely new prompt (similarity > 0.3)
-        # which indicates a structured mutation attempt.
-        is_anomaly = 0.30 < sim < 0.85
+        # Adversarial prompts are mutated but stay similar, or drift significantly.
+        from ..app.runtime.thresholds import SystemThresholds
+        is_anomaly = 0.30 < sim < SystemThresholds.quarantine()
 
         # Save record
         record = PromptMutationRecord(

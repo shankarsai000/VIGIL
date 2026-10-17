@@ -89,7 +89,7 @@ class ModelIntegrityService:
             sim = self._cosine_similarity(baseline_emb, current_embedding)
             drift_score = 1.0 - sim
             
-            # Drift threshold of 0.15 (similarity < 0.85)
+            # Drift threshold of 0.15
             if drift_score > 0.15:
                 is_anomaly = True
                 max_drift = max(max_drift, drift_score)

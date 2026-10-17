@@ -48,8 +48,12 @@ class AuditLedger:
         with self.path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 if line.strip():
-                    row = json.loads(line)
-                    seq, last = row["seq"], row["hash"]
+                    try:
+                        row = json.loads(line)
+                        seq = row.get("seq", seq + 1)
+                        last = row.get("hash", last)
+                    except Exception:
+                        pass
         return seq, last
 
     def append(self, record: Dict[str, Any]) -> Dict[str, Any]:

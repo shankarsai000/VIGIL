@@ -43,7 +43,9 @@ INJECTION_PATTERNS = [
 ]
 
 # Rule scores
-SCORE_SCOPE_VIOLATION = 0.90
+from ..runtime.thresholds import SystemThresholds
+
+SCORE_SCOPE_VIOLATION = SystemThresholds.quarantine()
 SCORE_INJECTION_SIGNATURE = 0.88
 SCORE_UNAUTHORIZED_DELEGATION = 0.95
 SCORE_MASS_DATA_READ = 0.80
@@ -51,7 +53,7 @@ MAX_PAYLOAD_BYTES = 100_000
 
 # EWMA multipliers
 SCORE_RATE_ANOMALY = 0.70
-SCORE_VOLUME_ANOMALY = 0.65
+SCORE_VOLUME_ANOMALY = SystemThresholds.escalate()
 CALL_RATE_MULTIPLIER = 3.0
 PAYLOAD_MULTIPLIER = 5.0
 
@@ -65,19 +67,19 @@ class RuleEngine:
 
         if "rate_limit_exceeded" in payload_lower or "burst of" in payload_lower or "flooding agent" in payload_lower:
             logger.warning(f"[Rule Engine] Rate anomaly signature matched")
-            return 0.85, ThreatType.RATE_ANOMALY
+            return SystemThresholds.quarantine(), ThreatType.RATE_ANOMALY
 
         if "simulated_model_poisoning" in payload_lower or "weight drift detected" in payload_lower:
             logger.warning(f"[Rule Engine] Model integrity drift signature matched")
-            return 0.85, ThreatType.MODEL_POISONING
+            return SystemThresholds.quarantine(), ThreatType.MODEL_POISONING
 
         if "dependency_signature_verification_failure" in payload_lower or "supply_chain" in payload_lower:
             logger.warning(f"[Rule Engine] Supply chain tamper signature matched")
-            return 0.90, ThreatType.SUPPLY_CHAIN_COMPROMISE
+            return SystemThresholds.quarantine(), ThreatType.SUPPLY_CHAIN_COMPROMISE
 
         if "artificial_mimicry" in payload_lower or "repeating same query" in payload_lower:
             logger.warning(f"[Rule Engine] Behavioral spoofing signature matched")
-            return 0.85, ThreatType.BEHAVIORAL_SPOOFING
+            return SystemThresholds.quarantine(), ThreatType.BEHAVIORAL_SPOOFING
 
         if event.event_type.value == "TOOL_CALL" or event.event_type.value == "DATA_ACCESS":
             if event.target not in profile.permitted_tools:
@@ -284,7 +286,7 @@ class HybridDetector:
             threat_type = rule_threat
         elif ewma_score > 0.0:
             threat_type = ewma_threat
-        elif armorclaw_score > 0.65 and armorclaw_label != "BENIGN_OPERATION":
+        elif armorclaw_score > SystemThresholds.escalate() and armorclaw_label != "BENIGN_OPERATION":
             # Map NLP semantic intents
             if armorclaw_label == "PROMPT_INJECTION":
                 threat_type = ThreatType.PROMPT_INJECTION
@@ -292,7 +294,7 @@ class HybridDetector:
                 threat_type = ThreatType.DATA_EXFILTRATION
             elif armorclaw_label == "TOOL_ABUSE":
                 threat_type = ThreatType.PRIVILEGE_ESCALATION
-        elif iforest_score > 0.65:
+        elif iforest_score > SystemThresholds.escalate():
             threat_type = ThreatType.RATE_ANOMALY if stats.get("call_rate", 0.0) > profile.baseline_call_rate else ThreatType.VOLUME_ANOMALY
             
         confidence = Confidence.from_score(final_score)

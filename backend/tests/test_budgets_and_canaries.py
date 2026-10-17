@@ -142,3 +142,48 @@ def test_canary_tripwires():
     assert trip2["tripped"] is True
     assert trip2["trigger_type"] == "CANARY_TOKEN_EXFILTRATION"
     assert trip2["recommended_tier"] == ContainmentTier.QUARANTINE_ROLLBACK.value
+
+
+# 6. Budget boundary inclusive test (Fix 7)
+def test_budget_boundary_inclusive():
+    """Verify that budget thresholds are inclusive (>=): equality triggers a breach.
+    
+    In Scenario 6, chunk size is 2,048 bytes. At chunk 5, cumulative exfiltration is exactly:
+    5 * 2,048 = 10,240 bytes.
+    The 1-minute window limit is 10,240 bytes. Because the check is inclusive (>=),
+    reaching exactly 10,240 bytes triggers the breach.
+    """
+    ledger = BudgetLedger()
+    agent_id = "agent-boundary"
+    trace_id = "trace-boundary"
+    t0 = 2000.0
+
+    # 1. Below boundary: 10,239 bytes -> NO breach
+    res_under = ledger.record_and_evaluate(agent_id, f"{trace_id}-under", b"A" * 10239, now=t0)
+    assert res_under["trace_1m_bytes"] == 10239
+    assert res_under["breached"] is False
+
+    # 2. Exact boundary: 10,240 bytes -> BREACHED (inclusive >=)
+    res_exact = ledger.record_and_evaluate(agent_id, f"{trace_id}-exact", b"A" * 10240, now=t0)
+    assert res_exact["trace_1m_bytes"] == 10240
+    assert res_exact["breached"] is True
+    assert "10240B >= 10240B" in res_exact["breach_reason"]
+    assert res_exact["recommended_tier"] == ContainmentTier.DOWNGRADE_SCOPE.value
+
+    # 3. Simulate Scenario 6 chunk-by-chunk: 5 chunks of 2,048 bytes
+    ledger_sc6 = BudgetLedger()
+    sc6_trace = "trace-sc6-sim"
+    chunk_bytes = b"X" * 2048
+
+    for chunk_idx in range(1, 5):
+        eval_pre = ledger_sc6.record_and_evaluate(agent_id, sc6_trace, chunk_bytes, now=t0 + chunk_idx)
+        assert eval_pre["breached"] is False
+        assert eval_pre["trace_1m_bytes"] == chunk_idx * 2048
+
+    # Chunk 5 reaches exactly 10,240 bytes -> triggers
+    eval_chunk5 = ledger_sc6.record_and_evaluate(agent_id, sc6_trace, chunk_bytes, now=t0 + 5)
+    assert eval_chunk5["trace_1m_bytes"] == 10240
+    assert eval_chunk5["breached"] is True
+    assert "10240B >= 10240B" in eval_chunk5["breach_reason"]
+    assert eval_chunk5["recommended_tier"] == ContainmentTier.DOWNGRADE_SCOPE.value
+

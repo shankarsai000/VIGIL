@@ -46,7 +46,7 @@ def test_scenario_6_end_to_end_offline():
     assert receipt["canary_tripwire"]["escalated_containment_tier"] == "QUARANTINE_ROLLBACK"
 
     synth = receipt["antibody_synthesis_benchmark"]
-    assert synth["benign_trials"] == 500
+    assert synth["benign_trials"] == 600
     assert synth["observed_false_blocks"] == 0
     assert synth["recall"] >= 0.90
     assert synth["is_ready_for_review"] is True
@@ -109,9 +109,9 @@ def test_demo_script_numbers_appear_in_evidence():
         "10240",      # 1m budget window & cumulative bytes
         "5",          # First alert chunk
         "24",         # Canary tripwire chunk
-        "500",        # Benign replay trials
+        "600",        # Benign replay trials
         "0",          # Observed false blocks
-        "0.005974",   # One-sided 95% upper bound
+        "0.00498",    # One-sided 95% upper bound
         "1.0",        # Recall
         "3.0",        # Proposal claimed seconds
     ]

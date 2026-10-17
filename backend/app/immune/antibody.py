@@ -109,13 +109,15 @@ def backtest_antibody_candidate(
     candidate: AntibodyCandidate,
     benign_records: List[ActionRecord],
     attack_records: List[ActionRecord],
-    min_recall: float = 0.90,
+    min_recall: Optional[float] = None,
 ) -> AntibodyBacktestReport:
     """Replay candidate against benign baseline and historical attacks.
     
     Rule: Candidate reaches 'ready for review' ONLY IF:
-          observed_false_blocks == 0 AND recall >= min_recall (0.90).
+          observed_false_blocks == 0 AND recall >= min_recall.
     """
+    from ..runtime.thresholds import SystemThresholds
+    target_recall = min_recall if min_recall is not None else SystemThresholds.min_recall()
     target_tool = candidate.pattern.tool
 
     # 1. Evaluate against benign records
@@ -142,7 +144,7 @@ def backtest_antibody_candidate(
     recall = (attack_blocks / total_attacks) if total_attacks > 0 else 0.0
 
     # 3. Determine readiness
-    is_ready = (false_blocks == 0) and (recall >= min_recall)
+    is_ready = (false_blocks == 0) and (recall >= target_recall)
 
     bound_pct = round(upper_bound * 100, 2)
     status_summary = (
@@ -152,8 +154,8 @@ def backtest_antibody_candidate(
     rejection_reason = None
     if false_blocks > 0:
         rejection_reason = f"Rejected: candidate caused {false_blocks} false blocks on benign traffic (must be 0)"
-    elif recall < min_recall:
-        rejection_reason = f"Rejected: candidate recall {round(recall * 100, 1)}% is below required {int(min_recall * 100)}%"
+    elif recall < target_recall:
+        rejection_reason = f"Rejected: candidate recall {round(recall * 100, 1)}% is below required {int(target_recall * 100)}%"
 
     return AntibodyBacktestReport(
         candidate=candidate,

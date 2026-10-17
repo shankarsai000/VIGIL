@@ -253,9 +253,10 @@ class TelegramService:
         incidents = await self.registry.get_incidents(limit=10)
         max_score = max([inc.detection_result.score for inc in incidents], default=0.0)
         
-        if max_score >= 0.85:
+        from ..app.runtime.thresholds import SystemThresholds
+        if max_score >= SystemThresholds.quarantine():
             threat_level = "🔴 CRITICAL"
-        elif max_score >= 0.65:
+        elif max_score >= SystemThresholds.escalate():
             threat_level = "🟡 HIGH"
         elif max_score >= 0.30:
             threat_level = "🔵 MEDIUM"

@@ -82,13 +82,11 @@ class RemediationExecutor:
         """
         score = detection_result.score
         
-        # 1. Determine Proposed Action based on Threat Score
-        # - score >= 0.85 -> QUARANTINE (Immediate quarantine recommended)
-        # - score >= 0.65 -> ALERT (Alert sent to security operations)
-        # - else -> LOG (Audit trails logged only)
-        if score >= 0.85:
+        # 1. Determine Proposed Action based on Threat Score using config/thresholds.yaml
+        from ..runtime.thresholds import SystemThresholds
+        if score >= SystemThresholds.quarantine():
             proposed_action = "QUARANTINE"
-        elif score >= 0.65:
+        elif score >= SystemThresholds.escalate():
             proposed_action = "ALERT"
         else:
             proposed_action = "LOG"
@@ -137,8 +135,8 @@ class RemediationExecutor:
         requires_approval = False
         
         if self.notification_service and not is_sleep_mode:
-            # If threat is HIGH or CRITICAL (score >= 0.65) or if it escalates
-            if score >= 0.65 or policy_decision == PolicyDecision.ESCALATE:
+            # If threat is HIGH or CRITICAL or if it escalates
+            if score >= SystemThresholds.escalate() or policy_decision == PolicyDecision.ESCALATE:
                 requires_approval = True
 
         if requires_approval:
@@ -183,7 +181,7 @@ class RemediationExecutor:
 
         # Send Telegram alert if not awaiting approval but score is high/critical
         if self.notification_service and final_action in ["QUARANTINE", "ALERT"]:
-            threat_level = "CRITICAL" if score >= 0.85 else "HIGH"
+            threat_level = "CRITICAL" if score >= SystemThresholds.quarantine() else "HIGH"
             asyncio.create_task(self.notification_service.send_alert(incident, threat_level))
 
         # 7. Audit Logging
@@ -209,7 +207,7 @@ class RemediationExecutor:
 
         # 8c. Auto-Remediation Orchestrator for CRITICAL threats
         # Only run if policy approved containment (fail-closed: not on DENY, ESCALATE, or AWAITING_APPROVAL)
-        if self.auto_remediation_orchestrator and score >= 0.85 and policy_decision == PolicyDecision.APPROVED:
+        if self.auto_remediation_orchestrator and score >= SystemThresholds.quarantine() and policy_decision == PolicyDecision.APPROVED:
             asyncio.create_task(
                 self.auto_remediation_orchestrator.execute_incident_response(
                     incident_id=incident_id,
@@ -230,7 +228,7 @@ class RemediationExecutor:
             )
 
         # 8e. Generate Remediation Script
-        if self.remediation_script_service and score >= 0.65:
+        if self.remediation_script_service and score >= SystemThresholds.escalate():
             asyncio.create_task(
                 self.remediation_script_service.generate_script(
                     incident_id=incident_id,

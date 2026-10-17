@@ -254,13 +254,15 @@ def evaluate_method_run(
         }
 
     elif method == "A1":
-        # A1: B3 without the bound (point estimate only: false_block_point == 0 and coverage >= 0.90)
+        # A1: B3 without the bound (point estimate only: false_block_point == 0 and coverage >= min_coverage)
         candidates = extract_candidates(records)
         a1_rules: Set[Tuple[str, str]] = set()
+        from backend.app.runtime.thresholds import SystemThresholds
+        min_cov = SystemThresholds.min_coverage()
         for c in candidates:
             if c.replay_report is not None:
                 rep = c.replay_report
-                if rep.false_block_point == 0.0 and rep.coverage >= 0.90 and rep.benign_blocked == 0:
+                if rep.false_block_point == 0.0 and rep.coverage >= min_cov and rep.benign_blocked == 0:
                     a1_rules.add((c.agent_id, c.tool))
         t1 = time.perf_counter()
         att_blocked = sum(1 for r in attack_records if (r.agent_id, r.tool) in a1_rules)
@@ -537,7 +539,7 @@ def format_markdown_report(results: Dict[str, Any]) -> str:
     md.append(
         "- On agents experiencing multiple distinct attack vectors (e.g. `customer_bot` attacked via both `data_export` and `system_override`), "
         "evaluating single-tool candidate rules yields 50% coverage per rule. "
-        "Because the policy immune replay threshold requires `coverage >= 0.90` per candidate rule, VIGIL correctly rejects partial rules that fail to meet the coverage threshold alone. "
+        "Because the policy immune replay threshold requires candidate rules to meet min_coverage, VIGIL correctly rejects partial rules that fail to meet the coverage threshold alone. "
         "This trades raw attack coverage (66.7% for B3 vs 100% for B1/B2) to strictly guarantee zero false blocks and satisfy policy thresholds.\n"
     )
 

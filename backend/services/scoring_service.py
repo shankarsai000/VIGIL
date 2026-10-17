@@ -65,7 +65,8 @@ class ScoringService:
 
         # If a capability violation is detected (binary 1.0), ensure floor score
         if cv > 0.8:
-            score = max(score, 0.75)
+            from ..app.runtime.thresholds import SystemThresholds
+            score = max(score, SystemThresholds.downgrade_max())
 
         final_score = max(0.0, min(1.0, float(score)))
         

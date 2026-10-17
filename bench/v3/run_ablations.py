@@ -54,16 +54,30 @@ from backend.app.immune.antibody import (
 from backend.app.immune.records import ActionRecord
 
 
-def wilson_interval(successes: int, trials: int, confidence: float = 0.95) -> Tuple[float, float]:
-    """Compute Wilson score interval for binomial proportions."""
+def clopper_pearson_two_sided_ci(successes: int, trials: int, confidence: float = 0.95) -> Tuple[float, float]:
+    """Compute exact two-sided Clopper-Pearson 95% confidence interval."""
     if trials == 0:
-        return 0.0, 0.0
-    z = 1.95996  # 95% two-sided
-    p = successes / trials
-    denom = 1 + z**2 / trials
-    center = (p + z**2 / (2 * trials)) / denom
-    margin = (z * math.sqrt(p * (1 - p) / trials + z**2 / (4 * trials**2))) / denom
-    return max(0.0, center - margin), min(1.0, center + margin)
+        return 0.0, 1.0
+    alpha = 1.0 - confidence
+    if successes == 0:
+        lower = 0.0
+        upper = 1.0 - math.pow(alpha / 2.0, 1.0 / trials)
+    elif successes == trials:
+        lower = math.pow(alpha / 2.0, 1.0 / trials)
+        upper = 1.0
+    else:
+        try:
+            from scipy.stats import beta
+            lower = float(beta.ppf(alpha / 2.0, successes, trials - successes + 1))
+            upper = float(beta.ppf(1.0 - alpha / 2.0, successes + 1, trials - successes))
+        except ImportError:
+            z = 1.95996
+            p = successes / trials
+            denom = 1 + z**2 / trials
+            center = (p + z**2 / (2 * trials)) / denom
+            margin = (z * math.sqrt(p * (1 - p) / trials + z**2 / (4 * trials**2))) / denom
+            lower, upper = max(0.0, center - margin), min(1.0, center + margin)
+    return max(0.0, lower), min(1.0, upper)
 
 
 def clopper_pearson_upper(successes: int, trials: int, confidence: float = 0.95) -> float:
@@ -72,9 +86,13 @@ def clopper_pearson_upper(successes: int, trials: int, confidence: float = 0.95)
         return 1.0
     if successes == 0:
         return 1.0 - math.pow(1.0 - confidence, 1.0 / trials)
-    p = successes / trials
-    z = 1.64485
-    return min(1.0, p + z * math.sqrt(p * (1.0 - p) / trials))
+    try:
+        from scipy.stats import beta
+        return float(beta.ppf(confidence, successes + 1, trials - successes))
+    except ImportError:
+        p = successes / trials
+        z = 1.64485
+        return min(1.0, p + z * math.sqrt(p * (1.0 - p) / trials))
 
 
 def generate_scenario_fixtures(seed: int = 42) -> Dict[str, List[Dict[str, Any]]]:
@@ -257,7 +275,7 @@ def run_ablation(ablation_name: str, fixtures: Dict[str, List[Dict[str, Any]]]) 
 
     # Compute Statistical Metrics
     det_rate = round(detected_attacks / total_attacks, 4)
-    low_ci, high_ci = wilson_interval(detected_attacks, total_attacks)
+    low_ci, high_ci = clopper_pearson_two_sided_ci(detected_attacks, total_attacks)
     mean_events = round(sum(events_to_alert_list) / len(events_to_alert_list), 2) if events_to_alert_list else None
     upper_bound = round(clopper_pearson_upper(false_blocks, benign_trials_count), 6)
     containment_per_1k = round((containment_actions / benign_trials_count) * 1000, 2)
@@ -268,8 +286,10 @@ def run_ablation(ablation_name: str, fixtures: Dict[str, List[Dict[str, Any]]]) 
         "attack_detected": detected_attacks,
         "detection_rate": det_rate,
         "detection_rate_95_ci": [round(low_ci, 4), round(high_ci, 4)],
+        "confidence_interval_type": "two_sided_95_clopper_pearson",
         "events_to_first_alert_mean": mean_events,
         "benign_trials_total": benign_trials_count,
+        "total_trials": total_attacks + benign_trials_count,
         "observed_false_blocks": false_blocks,
         "false_block_bound_95_upper": upper_bound,
         "containment_actions_per_1000_benign": containment_per_1k,
@@ -309,13 +329,15 @@ def generate_results_markdown(data: Dict[str, Any]) -> str:
         "",
         "## Summary",
         "Empirical benchmark evaluating VIGIL v3 component contributions across 6 scenario families (1,080 total trials).",
+        "The 1,080 total trials per configuration comprise 80 attack trials (20 confused deputy + 20 low-and-slow + 20 tool rug-pull + 20 injected tool output) and 1,000 benign trials (500 benign delegations + 500 benign bulk reads).",
+        "Detection rate intervals are exact two-sided 95% Clopper-Pearson confidence intervals. False block bounds are exact one-sided 95% Clopper-Pearson upper bounds.",
         "All ArmorIQ decision blocks are strictly simulated in the offline harness (`OFFLINE-HARNESS`) without external API calls.",
         "",
         "---",
         "",
         "## Ablation Results Table (E0 through E5)",
         "",
-        "| Ablation | Active Components | Detection Rate (95% CI) | Events to Alert | False Blocks (95% Bound) | Disruption / 1k Benign |",
+        "| Ablation | Active Components | Detection Rate (Two-Sided 95% Clopper-Pearson CI) | Events to Alert | False Blocks (One-Sided 95% Bound) | Disruption / 1k Benign |",
         "|---|---|---|---|---|---|",
     ]
 

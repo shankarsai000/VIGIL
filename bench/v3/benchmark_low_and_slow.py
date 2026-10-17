@@ -126,7 +126,7 @@ def run_benchmark_and_calibration(seed: int = 42) -> Tuple[Dict[str, Any], Dict[
         chunks.append({"chunk_index": c_idx, "payload": data_frag})
 
     # Detector A: EWMA single-event simulator
-    # Since each chunk is ~2 KB and queries are evenly spaced, single-event anomaly score stays under 0.45
+    # Since each chunk is ~2 KB and queries are evenly spaced, single-event anomaly score stays under anomaly threshold
     # until cumulative behavior is assessed.
     first_alert_ewma = None
     # Detector B: Budget ledger
@@ -168,7 +168,7 @@ def run_benchmark_and_calibration(seed: int = 42) -> Tuple[Dict[str, Any], Dict[
             }
 
         # 3. Evaluate EWMA single-event heuristic
-        # Single 2KB payload anomaly score is ~0.38 (below 0.45 threshold)
+        # Single 2KB payload anomaly score is ~0.38 (below base anomaly threshold)
         # EWMA does not alert on individual low-and-slow chunks
         if first_alert_ewma is None and idx >= 200:
             # Even if baseline drifted, EWMA alone cannot catch it early

@@ -242,9 +242,11 @@ def run_benign():
         # Normal score distribution for benign traffic (typically 0.01 - 0.20)
         score = round(random.uniform(0.01, 0.18), 4)
         
-        # Threat threshold is 0.45; proposed action for benign is LOG or NONE
+        # Threat threshold is loaded from thresholds.yaml; proposed action for benign is LOG or NONE
+        from backend.app.runtime.thresholds import SystemThresholds
+        anomaly_threshold = SystemThresholds.anomaly_score()
         proposed_action = "LOG" if score > 0.15 else "NONE"
-        if score >= 0.45:
+        if score >= anomaly_threshold:
             proposed_action = "QUARANTINE"
             quarantine_decisions += 1
             
@@ -262,7 +264,7 @@ def run_benign():
         "scenario": "BENIGN",
         "timestamp": time.time(),
         "total_events_evaluated": len(events_evaluated),
-        "containment_threshold": 0.45,
+        "containment_threshold": anomaly_threshold,
         "max_score_observed": max(e["score"] for e in events_evaluated),
         "mean_score_observed": round(sum(e["score"] for e in events_evaluated) / len(events_evaluated), 4),
         "quarantine_decisions": quarantine_decisions,
@@ -289,7 +291,7 @@ Empirically verified against the live ArmorIQ platform (`armoriq-sdk==0.6.10`, p
 | **ALLOW** | `DATA_EXFILTRATION` on `customer_bot` | Policy allows `quarantine_agent`; proxy executes tool over tunnel | `APPROVED (armoriq-live)` | **QUARANTINED** | {allow_res['latency_ms']}ms | **PASS** |
 | **DENY** | Destructive `drop_database` tool call | Policy blocks tool; `PolicyBlockedException` raised | `DENIED` | **LOG (DENIED)** (Uncontained) | {deny_res['blocked_info']['latency_ms']}ms | **PASS** |
 | **HOLD** | Sensitive privilege escalation requiring approval | Platform signals hold; `PolicyHoldException` raised | `ESCALATE` | **ESCALATE** (Human Cannot Bypass) | {hold_res['latency_ms']}ms | **PASS** |
-| **BENIGN** | 50 standard agent tool events | All scores under 0.45 threshold (mean {benign_res['mean_score_observed']}) | `NORMAL` | **MONITORING** (0 False Positives) | {benign_res['total_events_evaluated']} events | **PASS** |
+| **BENIGN** | 50 standard agent tool events | All scores under {anomaly_threshold} threshold (mean {benign_res['mean_score_observed']}) | `NORMAL` | **MONITORING** (0 False Positives) | {benign_res['total_events_evaluated']} events | **PASS** |
 
 ## Key Findings & Proofs
 
@@ -313,7 +315,7 @@ Empirically verified against the live ArmorIQ platform (`armoriq-sdk==0.6.10`, p
 4. **BENIGN Baseline (`evidence/live/benign.json`)**:
    - Total Events: {benign_res['total_events_evaluated']}
    - False Positives: {benign_res['quarantine_decisions']} (0.0% FP rate)
-   - Max Benign Score: {benign_res['max_score_observed']} < 0.45 threshold.
+   - Max Benign Score: {benign_res['max_score_observed']} < {anomaly_threshold} threshold.
 """
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(content)

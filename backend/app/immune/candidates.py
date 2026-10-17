@@ -4,10 +4,10 @@ Transforms observed attack families into candidate security denial rules
 and performs counterfactual replay triage.
 
 Classifications:
-- ACCEPT: Replay verified with coverage >= 0.90, false_block_upper <= 0.005,
+- ACCEPT: Replay verified with coverage >= min_coverage, false_block_upper <= 0.005,
   benign_total >= 600, and attacks_total >= 3.
 - INSUFFICIENT_EVIDENCE: Replay evaluation has insufficient samples (<600 benign or <3 attacks).
-- REJECT: Replay evaluation fails coverage (<0.90) or statistical bound (>0.005).
+- REJECT: Replay evaluation fails coverage (< min_coverage) or statistical bound (>0.005).
 - NOT_ENFORCEABLE: The attack family and benign traffic share the same tool name
   and separate only by argument values. Since ArmorIQ globs match tools and not
   argument values, a tool-level glob cannot safely block the attack without
@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from .records import ActionRecord
 from .replay import CandidateRule, ReplayReport, evaluate_candidate_rule
+from ..runtime.thresholds import SystemThresholds
 
 # Reuse name-safety check from synthesis.py
 SAFE_TOOL_PATTERN = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
@@ -159,8 +160,8 @@ def extract_candidates(
                     mcp_id=mcp_id,
                     status=STATUS_REJECT,
                     reason=(
-                        f"Replay rejected: coverage={report.coverage:.2f} (req >= 0.90) or "
-                        f"false_block_upper={report.false_block_upper:.6f} > 0.005"
+                        f"Replay rejected: coverage={report.coverage:.2f} (req >= {SystemThresholds.min_coverage():.2f}) or "
+                        f"false_block_upper={report.false_block_upper:.6f} > {SystemThresholds.max_false_block_upper():.3f}"
                     ),
                     replay_report=report,
                     candidate_rule=candidate,

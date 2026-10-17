@@ -32,17 +32,18 @@ class GovernanceRouter:
     ) -> Tuple[GovernanceVerdict, PolicyDecision]:
         """Evaluates prompt analysis, threat score, and operator roles against policy."""
         # Determine proposed containment action
-        if threat_score >= 0.85:
+        from ..runtime.thresholds import SystemThresholds
+        if threat_score >= SystemThresholds.quarantine():
             proposed_action = "QUARANTINE"
-        elif threat_score >= 0.65:
+        elif threat_score >= SystemThresholds.escalate():
             proposed_action = "ALERT"
         else:
             proposed_action = "LOG"
 
         # Determine threat level category
-        if threat_score >= 0.85:
+        if threat_score >= SystemThresholds.quarantine():
             threat_level = "CRITICAL"
-        elif threat_score >= 0.65:
+        elif threat_score >= SystemThresholds.escalate():
             threat_level = "HIGH"
         elif threat_score >= 0.30:
             threat_level = "MEDIUM"

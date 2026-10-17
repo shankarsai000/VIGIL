@@ -43,10 +43,11 @@ AUTHORIZATION_TIMEOUT_S = 20.0
 
 
 def _local_demo_decision(score: float) -> PolicyDecision:
-    # The thresholds the old mock used. The audit trail labels these decisions as not ArmorIQ.
-    if score >= 0.85:
+    # Uses centralized thresholds from config/thresholds.yaml
+    from ..runtime.thresholds import SystemThresholds
+    if score >= SystemThresholds.quarantine():
         return PolicyDecision.APPROVED
-    if score >= 0.65:
+    if score >= SystemThresholds.escalate():
         return PolicyDecision.ESCALATE
     return PolicyDecision.APPROVED
 

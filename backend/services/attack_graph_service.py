@@ -143,11 +143,12 @@ class AttackGraphService:
                 agent = await self.registry.get_agent(agent_id)
                 if agent and agent.status != AgentStatus.QUARANTINED:
                     # Create approval request instead of writing status directly
+                    from ..app.runtime.thresholds import SystemThresholds
                     approval_req = ApprovalRequest(
                         incident_id=str(uuid4()),
                         agent_id=agent_id,
                         threat_type=ThreatType.ATTACK_PROPAGATION,
-                        threat_score=0.85,
+                        threat_score=SystemThresholds.quarantine(),
                         proposed_action="QUARANTINE",
                         status=ApprovalStatus.PENDING,
                     )

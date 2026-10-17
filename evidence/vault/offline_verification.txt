@@ -1,6 +1,6 @@
 === VIGIL Offline Evidence Verification ===
-Timestamp: 1792227707.4825246
-Target: C:\Users\shank\AppData\Local\Temp\pytest-of-shank\pytest-162\test_offline_network_disabled_0\vault\bundle-offline-test.tar.gz
+Timestamp: 1792231040.7446916
+Target: C:\Users\shank\AppData\Local\Temp\pytest-of-shank\pytest-167\test_offline_network_disabled_0\vault\bundle-offline-test.tar.gz
 Network Status: DISABLED (all socket connections raise ConnectionRefusedError)
 Result Code: 0
 Log Output:
