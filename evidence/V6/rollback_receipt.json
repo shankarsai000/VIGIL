@@ -1,0 +1,59 @@
+{
+  "session_id": "session-v6-evidence",
+  "trace_id": "trace-v6-evidence",
+  "account_id": "ACC-1001",
+  "pre_mutation_hash": "62680cafb4d56cdfdefaeab46884bf7ca9c60332d9b75e354c1d7ab89e971640",
+  "mutated_hash": "2433994c370d205ff3a85a1a1b332e56ef9737230245909b435d2507f6e94e69",
+  "post_rollback_hash": "62680cafb4d56cdfdefaeab46884bf7ca9c60332d9b75e354c1d7ab89e971640",
+  "hashes_identical": true,
+  "overall_status": "COMPLETED",
+  "results": [
+    {
+      "checkpoint_id": "cp-session-v6-evidence-1792225545549-1",
+      "tool": "send_external_email",
+      "status": "IRREVERSIBLE",
+      "reason": "Email message already dispatched across external SMTP networks; cannot be recalled"
+    },
+    {
+      "checkpoint_id": "cp-session-v6-evidence-1792225545548-0",
+      "tool": "update_customer_account",
+      "inverse_tool": "revert_customer_account",
+      "status": "REVERSED",
+      "pre_hash": "62680cafb4d56cdfdefaeab46884bf7ca9c60332d9b75e354c1d7ab89e971640",
+      "post_hash": "62680cafb4d56cdfdefaeab46884bf7ca9c60332d9b75e354c1d7ab89e971640",
+      "hashes_match": true
+    }
+  ],
+  "dag": {
+    "trace_id": "trace-v6-evidence",
+    "total_nodes": 2,
+    "nodes": [
+      {
+        "id": "span-1-acc",
+        "tool": "update_customer_account",
+        "agent_id": "customer-bot",
+        "is_state_changing": true,
+        "status": "REVERSED",
+        "pre_hash": "62680cafb4d56cdfdefaeab46884bf7ca9c60332d9b75e354c1d7ab89e971640",
+        "reason": null,
+        "timestamp": 1792225545.5483751
+      },
+      {
+        "id": "span-2-email",
+        "tool": "send_external_email",
+        "agent_id": "customer-bot",
+        "is_state_changing": true,
+        "status": "IRREVERSIBLE",
+        "pre_hash": "286f880391b5600344283f62017ebbecb49ac45b19fa1ab5e907aebf06c28de1",
+        "reason": "Email message already dispatched across external SMTP networks; cannot be recalled",
+        "timestamp": 1792225545.5493646
+      }
+    ],
+    "edges": [
+      {
+        "from": "span-1-acc",
+        "to": "span-2-email"
+      }
+    ]
+  }
+}

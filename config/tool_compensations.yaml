@@ -1,0 +1,57 @@
+# VIGIL Tool Compensations Specification (config/tool_compensations.yaml)
+# Declares inverse operations, argument mappings, and irreversible side-effect classifications.
+# Rule G: Compensations exist only for tools that declare an inverse. Anything else is IRREVERSIBLE.
+
+compensations:
+  update_customer_account:
+    reversible: true
+    inverse_tool: revert_customer_account
+    argument_mapping:
+      account_id: account_id
+      payload: pre_state_data
+    pre_state_required:
+      - row_id
+      - version_hash
+      - snapshot_data
+    description: "Reverts mutated customer record to its pre-state snapshot"
+
+  insert_billing_record:
+    reversible: true
+    inverse_tool: delete_billing_record
+    argument_mapping:
+      invoice_id: invoice_id
+    pre_state_required:
+      - row_id
+      - version_hash
+    description: "Deletes newly inserted billing record by invoice ID"
+
+  set_credit_limit:
+    reversible: true
+    inverse_tool: restore_credit_limit
+    argument_mapping:
+      account_id: account_id
+      credit_limit: pre_credit_limit
+    pre_state_required:
+      - row_id
+      - version_hash
+    description: "Restores previous credit limit"
+
+  send_external_email:
+    reversible: false
+    status: IRREVERSIBLE
+    reason: "Email message already dispatched across external SMTP networks; cannot be recalled"
+
+  wire_transfer_funds:
+    reversible: false
+    status: IRREVERSIBLE
+    reason: "External ACH/Fedwire clearinghouse execution cannot be undone autonomously"
+
+  terminal_exec:
+    reversible: false
+    status: IRREVERSIBLE
+    reason: "Arbitrary OS subprocess execution side-effects cannot be cleanly inverted"
+
+  system_override:
+    reversible: false
+    status: IRREVERSIBLE
+    reason: "Low-level system configuration overrides require manual human administrative remediation"

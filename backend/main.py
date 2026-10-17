@@ -36,6 +36,7 @@ from .app.runtime.registry import AgentRegistry
 from .app.detection.detector import HybridDetector
 from .app.policies.armoriq_gate import ArmorIQGate
 from .app.policies.containment_ladder import ContainmentTier, SessionContainmentManager
+from .app.runtime.rollback import rollback_engine
 from .app.api.security import operator_key_valid, require_containment_secret, require_operator
 from .app.remediation.remediation import RemediationExecutor
 from .app.explainability.explainer import VIGILExplainer
@@ -1223,6 +1224,12 @@ async def release_session_containment(session_id: str, request: Request):
         except Exception as exc:
             logger.error("Failed to append release to ledger: %s", exc)
     return {"status": "released", "session_id": session_id, "tier": tier.value}
+
+
+@app.get("/traces/{trace_id}/blast-radius")
+async def get_trace_blast_radius(trace_id: str):
+    """Retrieve blast radius DAG for trace showing REVERSED, IRREVERSIBLE, and FAILED calls."""
+    return rollback_engine.build_blast_radius_dag(trace_id)
 
 
 @app.post("/agents/{agent_id}/release")
