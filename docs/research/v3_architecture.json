@@ -1,0 +1,51 @@
+[
+  {
+    "id": "v0-spec",
+    "phase": "V0",
+    "title": "PDF Triage and v3 Specification",
+    "description": "Systematic triage of proposal claims, Mermaid architecture boundary, and consolidated thresholds.",
+    "evidence_path": "evidence/V0/report.md"
+  },
+  {
+    "id": "v1-provenance",
+    "phase": "V1",
+    "title": "Provenance & Lineage DIFC Taint",
+    "description": "Cryptographic lineage records, monotonic propagation, and ArmorIQ OPA policy sink enforcement.",
+    "evidence_path": "evidence/V1/live_taint_enforcement.json"
+  },
+  {
+    "id": "v2-containment",
+    "phase": "V2",
+    "title": "Graduated Containment Ladder",
+    "description": "Four-tier graduated response: LOG_ONLY, DOWNGRADE_SCOPE, SHADOW_SANDBOX, and QUARANTINE_ROLLBACK.",
+    "evidence_path": "evidence/V2/live_containment_ladder.json"
+  },
+  {
+    "id": "v3-budgets",
+    "phase": "V3",
+    "title": "Low-and-Slow Budgets & Canaries",
+    "description": "Sliding window exfiltration limits, Shannon entropy estimation, and HMAC decoy canaries.",
+    "evidence_path": "evidence/V3/benchmark.json"
+  },
+  {
+    "id": "v4-scanning",
+    "phase": "V4",
+    "title": "Schema Pinning & Output Scanning",
+    "description": "Hash-chained tool schema pinning and Stage 1 deterministic indirect prompt injection scanning.",
+    "evidence_path": "evidence/V4/output_scanning_evaluation.json"
+  },
+  {
+    "id": "v5-antibodies",
+    "phase": "V5",
+    "title": "Antibody Candidate Proposals",
+    "description": "Deterministic and model-assisted candidate synthesis with 500-record counterfactual replay bounds.",
+    "evidence_path": "evidence/V5/candidate_backtest.json"
+  },
+  {
+    "id": "v6-rollback",
+    "phase": "V6",
+    "title": "Compensating Rollback & Blast Radius",
+    "description": "Pre-state checkpointing, backward Saga-style compensation, and blast radius DAG generation.",
+    "evidence_path": "evidence/V6/rollback_receipt.json"
+  }
+]

@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    pool: 'forks',
+    pool: 'threads',
   },
   server: {
     host: '0.0.0.0',
