@@ -15,7 +15,7 @@ export default defineConfig({
     port: 5173,
     allowedHosts: process.env.VITE_ALLOWED_HOSTS
       ? process.env.VITE_ALLOWED_HOSTS.split(',')
-      : ['localhost', '127.0.0.1'],
+      : true,
     proxy: {
       '/observe': 'http://127.0.0.1:8000',
       '/agents': 'http://127.0.0.1:8000',

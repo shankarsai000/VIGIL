@@ -2057,3 +2057,33 @@ async def ws_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket endpoint crashed: {e}")
         manager.disconnect(websocket)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Production Frontend SPA Static Mount (Railway / Cloud Deployment)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+frontend_dist = Path("frontend/dist")
+if not frontend_dist.exists():
+    frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+if frontend_dist.exists() and (frontend_dist / "index.html").exists():
+    logger.info(f"Mounting production frontend distribution from {frontend_dist}")
+    assets_dir = frontend_dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="frontend_assets")
+
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(str(frontend_dist / "index.html"))
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        target = frontend_dist / full_path
+        if full_path and target.exists() and target.is_file():
+            return FileResponse(str(target))
+        return FileResponse(str(frontend_dist / "index.html"))
+
