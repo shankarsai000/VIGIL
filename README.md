@@ -1,6 +1,6 @@
 # 🛡️ VIGIL 3.0 — Real-Time Behavioral Immune System for AI Agent Pipelines
 > **Autonomous AI Runtime Immune System Native to the ArmorIQ Policy Platform (`armoriq-sdk==0.6.10`)**  
-> **Team CS · GM University · ArmorIQ Track 2 · Flow State Hackathon**
+> ** Flow State Hackathon**
 
 [![Python 3.11](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![ArmorIQ SDK](https://img.shields.io/badge/armoriq--sdk-0.6.10-purple.svg)](https://pypi.org/project/armoriq-sdk/)
@@ -392,5 +392,4 @@ policy_immune:
 
 ## 12. License & Acknowledgments
 
-This project is submitted to the **ArmorIQ Track 2** at **HackBriven** by **Team CS, GM University**.  
 Licensed under the [MIT License](LICENSE).
