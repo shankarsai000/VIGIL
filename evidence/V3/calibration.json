@@ -1,0 +1,13 @@
+{
+  "dataset": "benign_train_split",
+  "sample_size": 500,
+  "mean_payload_bytes": 781.19,
+  "max_payload_bytes": 1298,
+  "mean_shannon_entropy": 4.2954,
+  "max_shannon_entropy": 4.4329,
+  "calibrated_thresholds": {
+    "window_1m_bytes_max": 10240,
+    "window_1h_bytes_max": 102400,
+    "shannon_entropy_threshold": 5.8
+  }
+}

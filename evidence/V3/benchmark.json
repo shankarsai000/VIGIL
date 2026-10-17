@@ -1,0 +1,35 @@
+{
+  "seed": 42,
+  "attack_type": "low_and_slow_exfiltration",
+  "chunk_count": 250,
+  "chunk_size_bytes_nominal": 2048,
+  "total_exfiltrated_bytes": 512000,
+  "detectors": {
+    "budget_ledger": {
+      "alerted": true,
+      "first_alert_chunk": 4,
+      "bytes_at_first_alert": 10240,
+      "reason": "1-minute cumulative trace exfiltration 10240B >= 10240B",
+      "tier": "DOWNGRADE_SCOPE"
+    },
+    "canary_tripwire": {
+      "alerted": true,
+      "first_alert_chunk": 24,
+      "bytes_at_first_alert": 51200,
+      "trigger_type": "CANARY_TOKEN_EXFILTRATION",
+      "tier": "QUARANTINE_ROLLBACK"
+    },
+    "ewma_single_event": {
+      "alerted": true,
+      "first_alert_chunk": 210,
+      "finding": "EWMA alone fails to alert during early exfiltration because per-chunk volume stays below threshold"
+    }
+  },
+  "benign_validation": {
+    "test_trials": 500,
+    "false_trips": 0,
+    "false_trip_rate_observed": 0.0,
+    "one_sided_95_upper_bound": 0.005974,
+    "claim": "0 of 500; one-sided 95% upper bound from Clopper-Pearson is 0.597%"
+  }
+}
