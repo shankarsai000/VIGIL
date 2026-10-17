@@ -19,8 +19,12 @@ import urllib.parse
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+try:
+    from slack_sdk import WebClient
+    from slack_sdk.errors import SlackApiError
+except ImportError:
+    WebClient = None  # type: ignore
+    SlackApiError = Exception  # type: ignore
 
 from .base import (
     ApprovalChannel,
@@ -54,7 +58,10 @@ class SlackApprovalChannel(ApprovalChannel):
         self.channel_id = channel_id or approval_channel
         self.allowed_domains = [d.strip().lower() for d in (allowed_domains or ["corp.internal", "example.com"])]
         self.mode = mode
-        self.client = client or (WebClient(token=self.bot_token) if self.bot_token else None)
+        if self.bot_token and WebClient is not None:
+            self.client = client or WebClient(token=self.bot_token)
+        else:
+            self.client = client
         
         # User identity cache: user_id -> (ApproverIdentity, expire_ts) (5 min TTL)
         self._user_cache: Dict[str, Tuple[ApproverIdentity, float]] = {}
