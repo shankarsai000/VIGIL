@@ -178,3 +178,13 @@ Before implementing Phases V1 and V2, the following empirical probes against the
 ### Probe 3: FastMCP Dynamic Route Redirection (Owned by Phase V2)
 - **Question**: When the containment server executes `route_to_shadow(session_id)`, can the tools FastMCP server intercept the session header and switch its internal SQLite connection string dynamically without restarting the daemon?
 - **Hypothesis**: FastMCP request contexts carry session IDs, enabling request-scoped connection multiplexing between `vigil.db` and `honeypot_mirage.db`.
+
+---
+
+## 8. Tool Output Scanning Scope Limits
+
+In accordance with Phase V4 specifications:
+- **Hosted Tools Scope**: VIGIL scans only the tools it directly hosts (e.g., `vigil-tools` on port 8791) or tools whose execution results are routed through VIGIL's proxy middleware.
+- **Third-Party Boundary**: Direct peer-to-peer MCP connections between external third-party servers and client agents that do not traverse VIGIL or the ArmorIQ customer proxy are outside VIGIL's scanning perimeter.
+- **Zero Client-Side Blocking**: Scanning results feed lineage taint (`EXTERNAL_UNTRUSTED`) and containment ladder directives. VIGIL never blocks an output or tool invocation on its own.
+

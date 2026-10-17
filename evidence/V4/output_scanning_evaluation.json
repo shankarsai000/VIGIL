@@ -1,0 +1,30 @@
+{
+  "corpus_metadata": {
+    "source": "Synthesized internal evaluation corpus created for VIGIL v3",
+    "benign_sample_count": 200,
+    "injected_sample_count": 100,
+    "total_samples": 300
+  },
+  "metrics": {
+    "true_positives": 90,
+    "false_positives": 0,
+    "true_negatives": 200,
+    "false_negatives": 10,
+    "accuracy": 0.9667,
+    "precision": 1.0,
+    "precision_95_ci": [
+      0.9591,
+      1.0
+    ],
+    "recall": 0.9,
+    "recall_95_ci": [
+      0.8256,
+      0.9448
+    ]
+  },
+  "statistical_claims": {
+    "precision_claim": "Precision: 100.0% (95% CI: [95.9%, 100.0%])",
+    "recall_claim": "Recall: 90.0% (95% CI: [82.6%, 94.5%])",
+    "false_positive_rate": "0 of 200 (0.0%)"
+  }
+}
