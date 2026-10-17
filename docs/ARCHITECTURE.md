@@ -19,15 +19,19 @@ flowchart TD
     subgraph VigilCore ["VIGIL v2 Defense Core"]
         Gateway["Event Ingestion & Interceptor"]
         
-        subgraph DetectionEngine ["Dual-Engine Threat Detection"]
+        subgraph Detector ["Dual-Engine Threat Detector"]
             Heuristics["Rule Engine & Regex\n(Injection, Exfiltration, Jailbreak)"]
             MLAnomaly["Isolation Forest & EWMA\n(Tool Calling Anomaly Model)"]
             Ensemble["Anomaly Aggregator\n(Score: [0.0 - 1.0])"]
         end
         
-        Governance["Telegram & Web Governance\n(Human-in-the-Loop)"]
+        subgraph ApprovalChannel ["Approval Channel (Human-in-the-Loop)"]
+            Slack["Slack Approval Channel\n(Block Kit / HMAC / Corporate Email)"]
+            Dashboard["Web Dashboard Governance\n(Operator Console)"]
+        end
+
         Ledger["SHA-256 Hash-Chained\nAudit Ledger"]
-        Synthesis["Incident-to-Policy\nSynthesis Engine"]
+        Synthesis["Policy Immune Synthesis &\nCounterfactual Replay Engine"]
     end
 
     subgraph ArmorIQCloud ["ArmorIQ Security Cloud"]
@@ -36,27 +40,31 @@ flowchart TD
         OPAEval["OPA Policy Engine\n(Signed Intent Tokens)"]
     end
 
-    subgraph MCPContainment ["MCP Actuation Plane"]
+    Gate["ArmorIQ Policy Gate\n(armoriq_gate.py / Fail-Closed)"]
+
+    subgraph ContainmentServer ["Containment Plane (FastMCP Server)"]
         Tunnel["Cloudflare Tunnel\n(:8790 -> trycloudflare)"]
-        FastMCP["vigil-containment FastMCP\n(Tool: quarantine_agent)"]
-        InternalAPI["Secret-Protected API\n(/internal/containment/quarantine)"]
+        FastMCP["vigil-containment FastMCP Server\n(Tool: quarantine_agent)"]
+        InternalAPI["Internal Quarantine API\n(/internal/containment/quarantine)"]
     end
 
     MultiAgentRuntime -->|Telemetry / Tool Calls| Gateway
-    Gateway --> DetectionEngine
+    Gateway --> Detector
     Heuristics --> Ensemble
     MLAnomaly --> Ensemble
-    Ensemble -->|Threshold Exceeded (>0.45)| Governance
+    Ensemble -->|Threshold Exceeded (>0.45)| ApprovalChannel
     Ensemble -->|Log All Events| Ledger
 
-    Governance -->|Escalate / Trigger Containment| ArmorIQGate["ArmorIQ Policy Gate\n(armoriq_gate.py)"]
-    ArmorIQGate -->|1. capture_plan| Proxy
+    Slack -->|Approve / Reject Callback| Gate
+    Dashboard -->|Operator Action| Gate
+    Gate -->|1. capture_plan| Proxy
     Proxy -->|2. get_intent_token| OPAEval
-    OPAEval -->|3. Signed Token| Proxy
+    OPAEval -->|3. Signed Token / Policy Block| Proxy
     Proxy -->|4. Governed Actuation| Tunnel
     Tunnel --> FastMCP
     FastMCP -->|Bearer CONTAINMENT_SECRET| InternalAPI
     InternalAPI -->|Quarantine State Updated| MultiAgentRuntime
+    Gate -->|Audit Entry Committed| Ledger
 
     Synthesis -->|Analyze Incidents vs Benign History| ControlPlane
     ControlPlane -->|Update Identity Policy| OPAEval

@@ -14,6 +14,7 @@ class VigilSettings(BaseSettings):
     # live: containment is authorized by ArmorIQ. disabled (default): quarantine is escalated to a human and
     # nothing is executed. local-demo: labelled deterministic thresholds, NOT ArmorIQ, not valid for submission.
     armoriq_mode: str = Field(default="disabled", description="live | disabled | local-demo")
+    submission_mode: bool = Field(default=False, description="Enforce strict submission compliance (requires ARMORIQ_MODE=live)")
     armoriq_api_key: str = Field(default="", description="ArmorIQ API key (required for live mode)")
     armoriq_user_email: str = Field(default="", description="Principal the ArmorIQ SDK acts for (live mode)")
     armoriq_agent_id: str = Field(default="vigil-containment", description="ArmorIQ identity used by VIGIL")

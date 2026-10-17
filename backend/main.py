@@ -190,6 +190,16 @@ async def lifespan(app: FastAPI):
     """Manages application startup seeding and graceful shutdown resources."""
     logger.info("Starting up VIGIL backend...")
     
+    import os
+    if settings.submission_mode or os.environ.get("SUBMISSION_MODE") == "1":
+        if settings.armoriq_mode != "live":
+            error_msg = (
+                f"FATAL: SUBMISSION_MODE is active but ARMORIQ_MODE is '{settings.armoriq_mode}'. "
+                f"Submissions strictly require ARMORIQ_MODE='live' (real ArmorIQ proxy with signed receipts)."
+            )
+            logger.critical(error_msg)
+            raise RuntimeError(error_msg)
+    
     # 0. Programmatically extract model zip archives if missing
     import os
     import zipfile

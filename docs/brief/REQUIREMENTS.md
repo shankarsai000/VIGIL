@@ -40,13 +40,13 @@ This requirements file is generated directly from the official hackathon brief i
 | **PK-01** | Working Project Source Code | Brief Line 15 | [`backend/`](file:///d:/vigil-v2/vigil-v2/backend/), [`frontend/`](file:///d:/vigil-v2/vigil-v2/frontend/) | **PASS** |
 | **PK-02** | Short Demo Video (<= 90 seconds) | Brief Line 15 ("short demo") | `docs/demo.mp4` (Human recorded) | **NOT STARTED** |
 | **PK-03** | System Architecture Documentation | Brief Line 15 ("clear documentation") | [`docs/ARCHITECTURE.md`](file:///d:/vigil-v2/vigil-v2/docs/ARCHITECTURE.md) | **PASS** |
-| **PK-04** | ArmorIQ Policy Configurations | Brief Line 15 ("integrated ArmorIQ") | `config/vigil-containment.armoriq.yaml`, `config/vigil-tools.armoriq.yaml` | **IN PROGRESS** |
+| **PK-04** | ArmorIQ Policy Configurations | Brief Line 15 ("integrated ArmorIQ") | `config/vigil-containment.armoriq.yaml`, `config/vigil-tools.armoriq.yaml` | **PASS** |
 | **PK-05** | Security Boundary Test Evidence | Brief Line 15 ("boundary was tested") | [`evidence/M5/live_verification.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_verification.json), [`evidence/SLACK-1/`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/) | **PASS** |
 | **PK-06** | Secret-Handling Compliance | CLAUDE.md Non-Negotiable 5 | Zero secrets in git history; all tokens redacted in reports | **PASS** |
-| **PK-07** | Open Source License File | R1 Specification | `LICENSE` | **NOT STARTED** |
-| **PK-08** | Security Reporting Policy | R1 Specification | `SECURITY.md` | **NOT STARTED** |
-| **PK-09** | Baseline Disclosure & In-Window Commits | R1 Specification | `docs/DISCLOSURE.md`, `CHANGELOG.md` | **NOT STARTED** |
-| **PK-10** | Continuous Integration Workflow | R1 Specification | `.github/workflows/ci.yml` | **NOT STARTED** |
+| **PK-07** | Open Source License File | R1 Specification | [`LICENSE`](file:///d:/vigil-v2/vigil-v2/LICENSE) | **PASS** |
+| **PK-08** | Security Reporting Policy | R1 Specification | [`SECURITY.md`](file:///d:/vigil-v2/vigil-v2/SECURITY.md) | **PASS** |
+| **PK-09** | Baseline Disclosure & In-Window Commits | R1 Specification | [`docs/DISCLOSURE.md`](file:///d:/vigil-v2/vigil-v2/docs/DISCLOSURE.md), [`CHANGELOG.md`](file:///d:/vigil-v2/vigil-v2/CHANGELOG.md) | **PASS** |
+| **PK-10** | Continuous Integration Workflow | R1 Specification | [`.github/workflows/ci.yml`](file:///d:/vigil-v2/vigil-v2/.github/workflows/ci.yml) | **PASS** |
 
 ---
 
