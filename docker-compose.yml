@@ -15,6 +15,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+        aliases:
+          - postgres
     restart: unless-stopped
 
   vigil-redis:
@@ -30,25 +34,32 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+        aliases:
+          - redis
     restart: unless-stopped
 
   vigil-backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: vigil-backend
     env_file:
       - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_HOST: ${REDIS_HOST:-redis}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:vigil_secure_password@vigil-postgres:5432/vigil_db}
+      REDIS_HOST: ${REDIS_HOST:-vigil-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_DB: ${REDIS_DB:-0}
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      AUDIT_LEDGER_PATH: backend/storage/audit_ledger.jsonl
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/workspace/backend
+      - ./config:/workspace/config:ro
+      - ./evidence:/workspace/evidence:ro
       - replay_storage:/workspace/backend/storage/replay_logs
       - telemetry_storage:/workspace/backend/storage/telemetry_logs
     depends_on:
@@ -87,8 +98,8 @@ services:
 
   vigil-containment:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: vigil-containment
     env_file:
       - .env
@@ -98,9 +109,30 @@ services:
       VIGIL_INTERNAL_URL: http://vigil-backend:8000
     ports:
       - "8790:8790"
+    volumes:
+      - ./backend:/workspace/backend
+      - ./config:/workspace/config:ro
     command: ["python", "-m", "backend.app.policies.containment_mcp"]
     depends_on:
       - vigil-backend
+    restart: unless-stopped
+
+  vigil-tools-mcp:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: vigil-tools-mcp
+    env_file:
+      - .env
+    environment:
+      TOOLS_MCP_HOST: 0.0.0.0
+      TOOLS_MCP_PORT: 8791
+    ports:
+      - "8791:8791"
+    volumes:
+      - ./backend:/workspace/backend
+      - ./config:/workspace/config:ro
+    command: ["python", "-m", "backend.app.policies.tools_mcp"]
     restart: unless-stopped
 
 volumes:
