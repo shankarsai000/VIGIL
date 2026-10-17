@@ -1,0 +1,41 @@
+====================================================================
+VIGIL 2.0 -- REQUIREMENTS COMPLIANCE CHECKER
+Mode: BASELINE AUDIT
+====================================================================
+
+Item Count: 25
+  PASS           : 17
+  IN PROGRESS    : 2
+  NOT STARTED    : 6
+  BLOCKED        : 0
+  FAIL           : 0
+
+Detailed Status:
+  BR-01    [PASS]          Functional agent runtime with real tools a
+  BR-02    [PASS]          Live verification receipt proving ArmorIQ 
+  BR-03    [PASS]          Git commit history confirming all new feat
+  BR-04    [IN PROGRESS]   Complete submission freeze, tagged release
+  BR-05    [PASS]          Passing automated test suite, runnable bac
+  BR-06    [NOT STARTED]   Recorded walkthrough video (`docs/demo.mp4
+  BR-07    [PASS]          Comprehensive documentation covering archi
+  BR-08    [PASS]          Containment MCP server (`backend/app/polic
+  BR-09    [PASS]          Empirical verification matrix, adversarial
+  BR-10    [PASS]          Platform registration and MCP server confi
+  PK-01    [PASS]          [`backend/`](file:///d:/vigil-v2/vigil-v2/
+  PK-02    [NOT STARTED]   `docs/demo.mp4` (Human recorded)
+  PK-03    [PASS]          [`docs/ARCHITECTURE.md`](file:///d:/vigil-
+  PK-04    [IN PROGRESS]   `config/vigil-containment.armoriq.yaml`, `
+  PK-05    [PASS]          [`evidence/M5/live_verification.json`](fil
+  PK-06    [PASS]          Zero secrets in git history; all tokens re
+  PK-07    [NOT STARTED]   `LICENSE`
+  PK-08    [NOT STARTED]   `SECURITY.md`
+  PK-09    [NOT STARTED]   `docs/DISCLOSURE.md`, `CHANGELOG.md`
+  PK-10    [NOT STARTED]   `.github/workflows/ci.yml`
+  IN-01    [PASS]          Automated OPA/ArmorIQ rule generation from
+  IN-02    [PASS]          Zero false blocks on recorded benign basel
+  IN-03    [PASS]          Upper bound on false-block probability at 
+  IN-04    [PASS]          Ed25519 signed manifest with standalone of
+  IN-05    [PASS]          Real-time HMAC-SHA256, verified corporate 
+
+====================================================================
+VERIFICATION: PASS
