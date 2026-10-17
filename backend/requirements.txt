@@ -41,3 +41,13 @@ python-telegram-bot>=21.0,<22
 # ArmorIQ SDK (containment governance) and the containment MCP server
 armoriq-sdk==0.6.10
 mcp>=1.2.0,<2
+
+# Slack Approval Gateway
+slack-sdk>=3.30.0
+slack-bolt>=1.20.0
+
+# Cryptography & Token Verification
+cryptography>=42.0.0
+pyjwt>=2.8.0
+pyyaml>=6.0.0
+
