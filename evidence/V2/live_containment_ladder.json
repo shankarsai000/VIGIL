@@ -1,0 +1,21 @@
+{
+  "timestamp": 1792224812.918,
+  "session_id": "session-live-v2-1792224809",
+  "containment_tier": "DOWNGRADE_SCOPE",
+  "token_id": "8a4c4e1f07e64e5aa14faa88f5a07131",
+  "read_tool_result": {
+    "status": "OPA_ALLOWED_TUNNEL_INACTIVE",
+    "tool": "order_status",
+    "opa_decision": "ALLOWED",
+    "downstream_detail": "MCP invocation failed: {'success': False, 'error': 'SSE Proxy Error', 'message': 'getaddrinfo ENOTFOUND monthly-theatre-reward-licence.trycloudflare.com', 'target': 'https://monthly-theatre-reward-licence.trycloudflare.com/mcp'}"
+  },
+  "write_tool_result": {
+    "status": "BLOCKED_BY_ARMORIQ_OPA",
+    "tool": "billing_database",
+    "message": "Tool 'billing_database' denied by OPA: policy_constraints_not_satisfied",
+    "layer": "opa",
+    "reason": "policy_constraints_not_satisfied"
+  },
+  "mirage_shadow_isolation_verified": true,
+  "mirage_rows_served": 5
+}

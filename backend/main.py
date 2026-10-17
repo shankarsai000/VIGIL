@@ -35,6 +35,7 @@ from .app.runtime.models import (
 from .app.runtime.registry import AgentRegistry
 from .app.detection.detector import HybridDetector
 from .app.policies.armoriq_gate import ArmorIQGate
+from .app.policies.containment_ladder import ContainmentTier, SessionContainmentManager
 from .app.api.security import operator_key_valid, require_containment_secret, require_operator
 from .app.remediation.remediation import RemediationExecutor
 from .app.explainability.explainer import VIGILExplainer
@@ -381,6 +382,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+app.state.containment_manager = SessionContainmentManager()
 
 # Apply CORS middleware
 app.add_middleware(
@@ -1059,6 +1062,167 @@ async def internal_quarantine(request: Request):
             logger.error("Failed to append containment to ledger: %s", exc)
     logger.warning("[Containment] %s quarantined on an ArmorIQ-authorized call (source=%s, reason=%s)", agent_id, source, body.get("reason"))
     return {"status": "quarantined", "agent_id": agent_id}
+
+
+@app.post("/internal/containment/downgrade", include_in_schema=False)
+async def internal_downgrade(request: Request):
+    """Containment callback: surgical session scope downgrade authorized by ArmorIQ."""
+    require_containment_secret(request)
+    body = await request.json()
+    session_id = str(body.get("session_id", ""))
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    reason = str(body.get("reason", "armoriq-authorized session downgrade"))
+    score = float(body.get("score", 0.0))
+    source = body.get("source", "gate")
+
+    mgr = getattr(app.state, "containment_manager", None)
+    if mgr is None:
+        mgr = SessionContainmentManager()
+        app.state.containment_manager = mgr
+
+    ledger_id = None
+    if hasattr(app.state, "gate") and hasattr(app.state.gate, "ledger"):
+        try:
+            mode = getattr(app.state.gate, "mode", "live")
+            enforcement = "armoriq-live" if mode == "live" else f"{mode} (NOT ArmorIQ)"
+            ledger_id = app.state.gate.ledger.append({
+                "session_id": session_id,
+                "action": "DOWNGRADE_SCOPE",
+                "score": score,
+                "reason": reason,
+                "source": source,
+                "enforcement": enforcement,
+                "timestamp": time.time(),
+            })
+        except Exception as exc:
+            logger.error("Failed to append downgrade to ledger: %s", exc)
+
+    new_tier = mgr.escalate_session(session_id, ContainmentTier.DOWNGRADE_SCOPE, reason, ledger_id, source=source)
+    logger.warning("[Containment] Session %s downgraded to %s (reason=%s)", session_id, new_tier.value, reason)
+    return {"status": "downgraded", "session_id": session_id, "tier": new_tier.value, "ledger_entry_id": ledger_id}
+
+
+@app.post("/internal/containment/shadow", include_in_schema=False)
+async def internal_shadow(request: Request):
+    """Containment callback: transparent redirect to Mirage synthetic sandbox authorized by ArmorIQ."""
+    require_containment_secret(request)
+    body = await request.json()
+    session_id = str(body.get("session_id", ""))
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    reason = str(body.get("reason", "armoriq-authorized shadow routing"))
+    score = float(body.get("score", 0.0))
+    source = body.get("source", "gate")
+
+    mgr = getattr(app.state, "containment_manager", None)
+    if mgr is None:
+        mgr = SessionContainmentManager()
+        app.state.containment_manager = mgr
+
+    ledger_id = None
+    if hasattr(app.state, "gate") and hasattr(app.state.gate, "ledger"):
+        try:
+            mode = getattr(app.state.gate, "mode", "live")
+            enforcement = "armoriq-live" if mode == "live" else f"{mode} (NOT ArmorIQ)"
+            ledger_id = app.state.gate.ledger.append({
+                "session_id": session_id,
+                "action": "SHADOW_SANDBOX",
+                "score": score,
+                "reason": reason,
+                "source": source,
+                "enforcement": enforcement,
+                "timestamp": time.time(),
+            })
+        except Exception as exc:
+            logger.error("Failed to append shadow routing to ledger: %s", exc)
+
+    new_tier = mgr.escalate_session(session_id, ContainmentTier.SHADOW_SANDBOX, reason, ledger_id, source=source)
+    logger.warning("[Containment] Session %s routed to %s (reason=%s)", session_id, new_tier.value, reason)
+    return {"status": "shadow_routed", "session_id": session_id, "tier": new_tier.value, "ledger_entry_id": ledger_id}
+
+
+@app.post("/internal/containment/rollback", include_in_schema=False)
+async def internal_rollback(request: Request):
+    """Containment callback: compensating rollback trigger authorized by ArmorIQ."""
+    require_containment_secret(request)
+    body = await request.json()
+    session_id = str(body.get("session_id", ""))
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    reason = str(body.get("reason", "armoriq-authorized rollback"))
+    score = float(body.get("score", 0.0))
+    source = body.get("source", "gate")
+
+    mgr = getattr(app.state, "containment_manager", None)
+    if mgr is None:
+        mgr = SessionContainmentManager()
+        app.state.containment_manager = mgr
+
+    ledger_id = None
+    if hasattr(app.state, "gate") and hasattr(app.state.gate, "ledger"):
+        try:
+            mode = getattr(app.state.gate, "mode", "live")
+            enforcement = "armoriq-live" if mode == "live" else f"{mode} (NOT ArmorIQ)"
+            ledger_id = app.state.gate.ledger.append({
+                "session_id": session_id,
+                "action": "QUARANTINE_ROLLBACK",
+                "score": score,
+                "reason": reason,
+                "source": source,
+                "enforcement": enforcement,
+                "timestamp": time.time(),
+            })
+        except Exception as exc:
+            logger.error("Failed to append rollback to ledger: %s", exc)
+
+    new_tier = mgr.escalate_session(session_id, ContainmentTier.QUARANTINE_ROLLBACK, reason, ledger_id, source=source)
+    logger.warning("[Containment] Session %s escalated to %s (reason=%s)", session_id, new_tier.value, reason)
+    return {"status": "rollback_triggered", "session_id": session_id, "tier": new_tier.value, "ledger_entry_id": ledger_id}
+
+
+@app.get("/sessions/{session_id}/containment")
+async def get_session_containment(session_id: str):
+    """Query current graduated containment tier and ledger audit trail for a session."""
+    mgr = getattr(app.state, "containment_manager", None)
+    if mgr is None:
+        mgr = SessionContainmentManager()
+        app.state.containment_manager = mgr
+    return mgr.get_session_info(session_id)
+
+
+@app.post("/sessions/{session_id}/release")
+async def release_session_containment(session_id: str, request: Request):
+    """Operator release action restoring session to LOG_ONLY status."""
+    require_operator(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    reason = (body.get("reason") or "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail="A reason is required to release session containment.")
+    operator_id = body.get("operator_id", "operator")
+
+    mgr = getattr(app.state, "containment_manager", None)
+    if mgr is None:
+        mgr = SessionContainmentManager()
+        app.state.containment_manager = mgr
+
+    tier = mgr.release_session(session_id, operator_id=operator_id, reason=reason)
+    if hasattr(app.state, "gate") and hasattr(app.state.gate, "ledger"):
+        try:
+            app.state.gate.ledger.append({
+                "session_id": session_id,
+                "action": "SESSION_RELEASE",
+                "operator_id": operator_id,
+                "reason": reason,
+                "tier": tier.value,
+                "timestamp": time.time(),
+            })
+        except Exception as exc:
+            logger.error("Failed to append release to ledger: %s", exc)
+    return {"status": "released", "session_id": session_id, "tier": tier.value}
 
 
 @app.post("/agents/{agent_id}/release")

@@ -1,10 +1,16 @@
-"""Containment actuator behind ArmorIQ.
+"""Containment actuator behind ArmorIQ (Phase V2 Graduated Ladder).
 
-ArmorIQ authorizes quarantine_agent. This MCP server carries it out by calling VIGIL's internal containment
-endpoint with a shared secret. VIGIL refuses containment calls that do not carry the secret.
+ArmorIQ authorizes containment tools:
+1. quarantine_agent: Full agent quarantine.
+2. downgrade_session: Surgical session downgrade (strip write/admin tools).
+3. route_to_shadow: Route session to synthetic Mirage sandbox.
+4. rollback_session: Execute compensating rollback of session mutations.
+
+This FastMCP server carries out the directives by calling VIGIL's internal containment
+endpoints with a shared secret. VIGIL refuses containment calls that do not carry the secret.
 
 Run:     python -m backend.app.policies.containment_mcp     (streamable HTTP at http://HOST:PORT/mcp)
-Expose:  put a tunnel in front of it and register that URL with ArmorIQ, like any other MCP server.
+Expose:  register with ArmorIQ, like any other MCP server.
 """
 from __future__ import annotations
 
@@ -48,6 +54,60 @@ async def quarantine_agent(agent_id: str, reason: str, score: float = 0.0) -> di
     if response.status_code != 200:
         return {"status": "error", "http_status": response.status_code}
     return {"status": "quarantined", "agent_id": agent_id}
+
+
+@app.tool()
+async def downgrade_session(session_id: str, reason: str, score: float = 0.0) -> dict:
+    """Surgically downgrade a session to read-only capabilities in VIGIL. Call only after ArmorIQ authorization."""
+    if not CONTAINMENT_SECRET:
+        return {"status": "refused", "detail": "CONTAINMENT_SECRET is not set on the containment server"}
+    if not session_id or len(session_id) > 128:
+        return {"status": "refused", "detail": "invalid session_id"}
+    async with _client() as client:
+        response = await client.post(
+            "/internal/containment/downgrade",
+            json={"session_id": session_id, "reason": reason, "score": score},
+            headers={"X-Containment-Secret": CONTAINMENT_SECRET},
+        )
+    if response.status_code != 200:
+        return {"status": "error", "http_status": response.status_code}
+    return {"status": "downgraded", "session_id": session_id}
+
+
+@app.tool()
+async def route_to_shadow(session_id: str, reason: str, score: float = 0.0) -> dict:
+    """Transparently redirect a session to synthetic Mirage sandbox data. Call only after ArmorIQ authorization."""
+    if not CONTAINMENT_SECRET:
+        return {"status": "refused", "detail": "CONTAINMENT_SECRET is not set on the containment server"}
+    if not session_id or len(session_id) > 128:
+        return {"status": "refused", "detail": "invalid session_id"}
+    async with _client() as client:
+        response = await client.post(
+            "/internal/containment/shadow",
+            json={"session_id": session_id, "reason": reason, "score": score},
+            headers={"X-Containment-Secret": CONTAINMENT_SECRET},
+        )
+    if response.status_code != 200:
+        return {"status": "error", "http_status": response.status_code}
+    return {"status": "shadow_routed", "session_id": session_id}
+
+
+@app.tool()
+async def rollback_session(session_id: str, reason: str, score: float = 0.0) -> dict:
+    """Trigger compensating rollback of actions in a session. Call only after ArmorIQ authorization."""
+    if not CONTAINMENT_SECRET:
+        return {"status": "refused", "detail": "CONTAINMENT_SECRET is not set on the containment server"}
+    if not session_id or len(session_id) > 128:
+        return {"status": "refused", "detail": "invalid session_id"}
+    async with _client() as client:
+        response = await client.post(
+            "/internal/containment/rollback",
+            json={"session_id": session_id, "reason": reason, "score": score},
+            headers={"X-Containment-Secret": CONTAINMENT_SECRET},
+        )
+    if response.status_code != 200:
+        return {"status": "error", "http_status": response.status_code}
+    return {"status": "rollback_triggered", "session_id": session_id}
 
 
 if __name__ == "__main__":
