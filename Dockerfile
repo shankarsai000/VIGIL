@@ -22,10 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r ./backend/requirements.txt
 
-# Copy backend, centralized thresholds, and evidence
+# Copy application code, configuration, evidence, and runner
 COPY backend/ ./backend/
 COPY config/ ./config/
 COPY evidence/ ./evidence/
+COPY run.py ./run.py
 
 # Copy compiled frontend from Stage 1 into frontend/dist
 COPY --from=frontend-builder /app/dist ./frontend/dist
@@ -34,5 +35,5 @@ COPY --from=frontend-builder /app/dist ./frontend/dist
 ENV PORT=8000
 EXPOSE 8000
 
-# Launch Uvicorn on $PORT
-CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Launch Python runner directly (handles $PORT cleanly without shell parsing errors)
+CMD ["python", "run.py"]

@@ -13,4 +13,4 @@ cmds = [
 ]
 
 [start]
-cmd = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+cmd = "python run.py"

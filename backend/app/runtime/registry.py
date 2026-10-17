@@ -75,7 +75,16 @@ class AgentRegistry:
     async def init_db(self) -> None:
         """Initializes the database schema if tables do not exist."""
         logger.info("Initializing VIGIL database...")
-        await self.db.connect()
+        try:
+            await self.db.connect()
+        except Exception as e:
+            logger.warning(
+                f"Failed to connect to configured database ({self.database_url}): {e}. "
+                "Falling back to local SQLite database (vigil.db)."
+            )
+            from .db import SQLiteDatabase
+            self.db = SQLiteDatabase("vigil.db")
+            await self.db.connect()
 
         statements = [
             """
