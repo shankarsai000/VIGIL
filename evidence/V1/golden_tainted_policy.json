@@ -1,0 +1,51 @@
+{
+  "scenario": "confused_deputy_tainted_lineage",
+  "trace_id": "trace-golden-v1-confused-deputy",
+  "lineage": {
+    "current_taint": 3,
+    "current_taint_name": "EXTERNAL_UNTRUSTED",
+    "spans": [
+      {
+        "span_id": "span-001",
+        "parent_span_id": null,
+        "from_agent": null,
+        "to_agent": "customer_bot",
+        "taint": 3,
+        "source_label": "untrusted_support_ticket_email",
+        "status": "VALID"
+      },
+      {
+        "span_id": "span-002",
+        "parent_span_id": "span-001",
+        "from_agent": "customer_bot",
+        "to_agent": "analytics_agent",
+        "taint": 3,
+        "source_label": "ticket_summary_delegation",
+        "status": "VALID"
+      },
+      {
+        "span_id": "span-003",
+        "parent_span_id": "span-002",
+        "from_agent": "analytics_agent",
+        "to_agent": "billing_agent",
+        "taint": 3,
+        "source_label": "request_financial_export",
+        "status": "VALID"
+      }
+    ],
+    "taint_sources": [
+      "untrusted_support_ticket_email"
+    ]
+  },
+  "target_tool": "billing_database",
+  "sink_ceiling": "VERIFIED_INTERNAL",
+  "derived_mint_policy": {
+    "allow": [],
+    "deny": [
+      "vigil-tools/billing_database"
+    ],
+    "reason": "DIFC taint violation: tool 'billing_database' requires taint <= VERIFIED_INTERNAL, but trace carries EXTERNAL_UNTRUSTED",
+    "taint_level": "EXTERNAL_UNTRUSTED",
+    "enforcement_status": "DENY_MINT_POLICY"
+  }
+}

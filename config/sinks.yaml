@@ -1,0 +1,25 @@
+# Restricted Sinks Specification (config/sinks.yaml)
+# Maps privileged tools to their maximum permitted input taint ceiling.
+# Any call whose lineage taint exceeds this ceiling must have that tool denied in the minted intent token policy.
+
+restricted_sinks:
+  billing_database:
+    ceiling: "VERIFIED_INTERNAL"
+    mcp_id: "vigil-tools"
+    description: "Production financial ledger and customer billing accounts"
+  export_financial_records:
+    ceiling: "SYSTEM_TRUSTED"
+    mcp_id: "vigil-tools"
+    description: "Bulk export of corporate financial statements"
+  iam_role_grant:
+    ceiling: "SYSTEM_TRUSTED"
+    mcp_id: "vigil-tools"
+    description: "Privileged identity and role elevation permissions"
+  system_override:
+    ceiling: "SYSTEM_TRUSTED"
+    mcp_id: "vigil-tools"
+    description: "Core execution kernel and system prompt override"
+  terminal_exec:
+    ceiling: "SYSTEM_TRUSTED"
+    mcp_id: "vigil-tools"
+    description: "Direct operating system command line execution"
