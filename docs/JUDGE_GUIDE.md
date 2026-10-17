@@ -1,6 +1,8 @@
 # VIGIL 2.0 — Judge & Evaluator Reproduction Guide (5-Minute Path)
 
 Welcome to the **VIGIL 2.0** verification guide for the ArmorIQ Flow State Hackathon. This document provides an exact, self-contained, 5-minute path to verify every requirement, peak innovation, live platform receipt, and benchmark claim.
+- 🌐 **Live Interactive Deployment**: [https://vigil-production-b1f0.up.railway.app/](https://vigil-production-b1f0.up.railway.app/)
+- 🩺 **Production Health Check**: [https://vigil-production-b1f0.up.railway.app/health](https://vigil-production-b1f0.up.railway.app/health)
 
 ---
 

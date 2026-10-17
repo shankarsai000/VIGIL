@@ -10,6 +10,8 @@
 [![Evidence Vault](https://img.shields.io/badge/evidence--vault-Ed25519%20signed-blueviolet.svg)](evidence/vault/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+🌐 **Live Interactive Deployment**: [https://vigil-production-b1f0.up.railway.app/](https://vigil-production-b1f0.up.railway.app/)  
+🩺 **Production Health Check**: [https://vigil-production-b1f0.up.railway.app/health](https://vigil-production-b1f0.up.railway.app/health)  
 🔗 **GitHub Repository**: [https://github.com/shankarsai000/VIGIL](https://github.com/shankarsai000/VIGIL)  
 📋 **Judge & Evaluator Guide**: [`docs/JUDGE_GUIDE.md`](docs/JUDGE_GUIDE.md)  
 📄 **Executive One-Pager**: [`docs/ONE_PAGER.md`](docs/ONE_PAGER.md)  
