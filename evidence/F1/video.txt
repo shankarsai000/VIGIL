@@ -1,0 +1,5 @@
+STATUS: PENDING_HUMAN_RECORDING
+TARGET_DURATION_SECONDS: 85
+DURATION_LIMIT_SECONDS: 90
+SCRIPT_PATH: docs/DEMO_SCRIPT.md
+NOTES: The demonstration video is human-recorded per hackathon rules. When docs/demo.mp4 is placed in the repository by the operator, measure its duration using ffprobe. The video script is precisely timed to 85 seconds (< 90s limit).

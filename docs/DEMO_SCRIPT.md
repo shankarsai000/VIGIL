@@ -1,116 +1,55 @@
-# VIGIL Policy Immune System — Live Demonstration Script
+# VIGIL 2.0 — Live Demonstration Script (90-Second Walkthrough)
 
-A step-by-step walkthrough of the VIGIL autonomous policy immune lifecycle, demonstrating how confirmed security incidents are transformed into mathematically proven, cryptographically signed, and platform-enforced ArmorIQ policies in under two minutes.
-
----
-
-## Prerequisites & Launch
-
-### 1. Launch the End-to-End Scripted Demonstration
-To run the automated governance lifecycle end-to-end:
-```bash
-python scripts/demo_policy_loop.py --offline
-```
-*(For live platform enforcement with ArmorIQ credentials, run without `--offline`: `python scripts/demo_policy_loop.py --live`).*
-
-### 2. Optional: Launch the Interactive Web Dashboard
-```bash
-# Terminal 1: Backend API
-uvicorn backend.main:app --port 8000
-
-# Terminal 2: Governance UI
-cd frontend && npm run dev
-```
-Open your browser to: [http://localhost:5173/?tab=proposals](http://localhost:5173/?tab=proposals)
+A timed 85-second script for the official demonstration video of the VIGIL 2.0 Policy Immune System and ArmorIQ platform governance.
 
 ---
 
-## On-Screen Steps in Order
-
-### Step 1: Incident Ingestion & Labelled Telemetry
-- **On-Screen Action**: Script ingests recorded agent traffic for `customer-bot`.
-- **What to Observe**:
-  - 620 historical records are loaded as `BENIGN_ASSUMED` baseline.
-  - An exfiltration attempt triggers incident `inc-2026-10-m6-exfil` with 12 confirmed `ATTACK` records on `vigil-tools.billing_database`.
-  - Action records strictly enforce structural redaction (argument shapes only, zero raw queries or plaintext secrets stored).
-- **Evidence Reference**: [`evidence/M1/action_traces_sample.jsonl`](file:///d:/vigil-v2/vigil-v2/evidence/M1/action_traces_sample.jsonl)
+## Video Specifications
+- **Target Duration**: 85 seconds (Limit: $\le$ 90 seconds)
+- **Resolution**: 1080p (1920x1080) at 30/60 fps
+- **Audio**: Crisp narration with clear terminal & UI focus
+- **Artifact Path**: `docs/demo.mp4` (Human recorded)
 
 ---
 
-### Step 2: Candidate Rule Grouping
-- **On-Screen Action**: VIGIL's candidate extractor groups attack records by `(agent_id, tool)` family.
-- **What to Observe**:
-  - Extracts candidate deny rule: `CandidateRule(agent_id='customer-bot', mcp_id='vigil-tools', tool='billing_database')`.
-  - Families that only separate by argument value are classified as `NOT_ENFORCEABLE` (ArmorIQ enforces tool-level globs, not arbitrary regex arguments).
-- **Evidence Reference**: [`evidence/M3/customer-bot.manifest.json`](file:///d:/vigil-v2/vigil-v2/evidence/M3/customer-bot.manifest.json)
+## Timed Scene Breakdown (Total: 85 Seconds)
+
+### Scene 1: The Problem & ArmorIQ Architecture (00:00 – 00:15 | 15s)
+- **Visual**: Title slide / Architecture diagram from `docs/ARCHITECTURE.md`.
+- **Narration**: *"Autonomous AI agents require privileged tool access, but naive blocking causes catastrophic business disruption. VIGIL 2.0 solves this with a Policy Immune System native to ArmorIQ. Candidate security rules are replayed over historical agent telemetry to mathematically guarantee zero false-positive disruption before deployment."*
+- **On-Screen Focus**: The dual FastMCP architecture (`vigil-tools` on 8791, `vigil-containment` on 8790) and the single enforcement gate.
 
 ---
 
-### Step 3: Counterfactual Replay & Clopper-Pearson Statistical Bound
-- **On-Screen Action**: The pure replay engine evaluates the candidate against the historical record.
-- **What to Observe**:
-  - The replay table displays:
-    ```text
-    +-----------------------------------------------------------------------+
-    | Metric                      | Observed Value | Mathematical Criterion |
-    +-----------------------------------------------------------------------+
-    | Attacks Observed            | 12             | Total incident vectors |
-    | Attacks Blocked             | 12             | Target tool matches    |
-    | Attack Coverage             |         100.0% | >= 90.0% required      |
-    | Benign Baseline             | 620            | >= 600 required        |
-    | Benign False Blocks         | 0              | Metric to MINIMISE     |
-    | False-Block Rate (Point)    |          0.00% | Empirical rate         |
-    | 95% Clopper-Pearson Bound   |         0.482% | <= 0.500% required     |
-    | REPLAY VERDICT              | ACCEPT         | SAFE TO PROPOSE        |
-    +-----------------------------------------------------------------------+
-    ```
-  - Exact one-sided statistical bound $\bar{p}_{0.95} = 0.482\% \le 0.500\%$.
-  - Rule is classified as `ACCEPT` (proven safe: zero autoimmune disruption).
-- **Evidence Reference**: [`evidence/M2/replay_report_accept.json`](file:///d:/vigil-v2/vigil-v2/evidence/M2/replay_report_accept.json)
+### Scene 2: Incident Telemetry & Structural Redaction (00:15 – 00:30 | 15s)
+- **Visual**: Terminal running `uv run python scripts/demo_policy_loop.py`.
+- **Narration**: *"When customer-bot experiences an exfiltration attack targeting our billing database, VIGIL ingests the telemetry with strict structural redaction: only argument shapes and keys are stored, with zero secrets or plaintext ever recorded."*
+- **On-Screen Focus**: Terminal showing 620 benign baseline records and 12 attack records ingested.
 
 ---
 
-### Step 4: Governance Approval via Slack Channel
-- **On-Screen Action**: Review and authorize governance actions from Slack (or the Approval Channel UI panel).
-- **What to Observe**:
-  - Proposal is delivered to `#vigil-approvals` Slack channel via Block Kit interactive card.
-  - Card displays title, kind, tier, summary fields, replay numbers (Coverage: 100.0%, 95% Clopper-Pearson bound: 0.482%), expiration countdown, dashboard deep-link, and single-use `Approve` / `Reject` buttons.
-  - Interactive buttons carry server-issued nonces (zero raw arguments, zero secrets, zero decision state in payload).
-  - High-impact tier proposal strictly enforces a two-person approval policy on the server:
-    1. First Approver (`sec-lead@corp.internal` in Slack): Clicks Approve. Status remains `PROPOSED` (1 of 2).
-    2. Second Approver (`compliance-officer@corp.internal` in Slack): Clicks Approve. Status transitions to `APPROVED` (2 of 2).
-  - Separation of duties: proposal creator cannot approve their own proposal.
-  - Duplicate approvals are ignored idempotently without secondary execution.
-  - Slack message is dynamically updated via `chat.update` with outcome, approver identities, and timestamp.
-  - Every callback accepted/rejected and decision is committed to the hash-chained audit ledger.
-- **Evidence Reference**: [`evidence/SLACK-1/report.md`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/report.md), [`evidence/SLACK-1/offline.txt`](file:///d:/vigil-v2/vigil-v2/evidence/SLACK-1/offline.txt)
+### Scene 3: Counterfactual Replay & Clopper-Pearson Bound (00:30 – 00:45 | 15s)
+- **Visual**: The Replay Evaluation table in the terminal or Web UI.
+- **Narration**: *"VIGIL's pure replay engine tests the candidate rule against historical operations. Across 620 benign events, it proves 0 false blocks and calculates an exact Clopper-Pearson 95% upper bound of 0.48%—meeting our strict 0.5% safety threshold. The rule is accepted as proven safe."*
+- **On-Screen Focus**: Replay verdict: `ACCEPT` (Coverage: 100%, 95% Clopper-Pearson bound: 0.482% $\le$ 0.500%).
 
 ---
 
-### Step 5: ArmorIQ Verification in Sandbox
-- **On-Screen Action**: Sandbox agent executes verification calls under the signed intent envelope.
-- **What to Observe**:
-  - 3 attack calls against `billing_database`: All 3 are **DENIED** with `PolicyBlockedException` at the OPA platform layer (`layer: "opa"`).
-  - 3 benign calls on `order_status`: All 3 are **ALLOWED** and execute successfully.
-  - Platform denial is proven directly in code before production promotion.
-- **Evidence Reference**: [`evidence/M5/live_verification.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_verification.json)
+### Scene 4: Slack Two-Person Governance Gateway (00:45 – 00:60 | 15s)
+- **Visual**: Slack channel `#vigil-approvals` interactive card.
+- **Narration**: *"For high-impact policy changes, VIGIL enforces server-side two-person approval. Approvers inspect the mathematical replay bounds in Slack and authenticate decisions with single-use cryptographic nonces."*
+- **On-Screen Focus**: First approver clicks `Approve` (state: 1 of 2); second approver clicks `Approve` (state transitions to `APPROVED`).
 
 ---
 
-### Step 6: Ed25519 Signed Receipt & Hash-Chained Audit Ledger
-- **On-Screen Action**: Receipt generation and ledger verification.
-- **What to Observe**:
-  - Verifier issues receipt signed with Ed25519 (private key lives outside repository at `~/.vigil/receipt_ed25519.key`).
-  - Cryptographic signature validates with public key; tampered receipts fail.
-  - Receipt digest is appended to the tamper-evident ledger at [`backend/storage/audit_ledger.jsonl`](file:///d:/vigil-v2/vigil-v2/backend/storage/audit_ledger.jsonl).
-- **Evidence Reference**: [`evidence/M5/live_receipt.json`](file:///d:/vigil-v2/vigil-v2/evidence/M5/live_receipt.json)
+### Scene 5: Live Platform Enforcement & Explainable Denials (00:60 – 00:75 | 15s)
+- **Visual**: Web dashboard Incident Detail Panel & Terminal.
+- **Narration**: *"Under live ArmorIQ proxy enforcement, attack calls on billing_database are blocked by OPA with PolicyBlockedException, while legitimate order_status calls pass through. In the VIGIL dashboard, our Explainable Denials endpoint shows full provenance linking the block to the approved proposal and replay bound."*
+- **On-Screen Focus**: Web UI Policy Denial Provenance card showing Rule ID, Proposal ID, and Replay Coverage.
 
 ---
 
-### Step 7: Cross-Tenant Shared Signatures
-- **On-Screen Action**: Export & import of abstract security motifs.
-- **What to Observe**:
-  - Export: Emits signed motif bundle `CATEGORY:secret_read -> CATEGORY:external_send` with bucketed support (`"medium"`).
-  - Privacy: Zero tool names, agent IDs, tenant IDs, argument values, or timestamps are exposed.
-  - Import: Evaluates imported motif against local traffic; local benign contradictions are rejected immediately without writing config.
-- **Evidence Reference**: [`evidence/M6/demo_output.txt`](file:///d:/vigil-v2/vigil-v2/evidence/M6/demo_output.txt)
+### Scene 6: Ed25519 Receipts & Tamper-Proof Ledger (00:75 – 00:85 | 10s)
+- **Visual**: Audit Ledger export & standalone verification tool.
+- **Narration**: *"Every platform decision produces an offline-verifiable Ed25519 receipt sealed in a SHA-256 hash-chained ledger. VIGIL 2.0: safe, mathematically verified, ArmorIQ-native agent governance."*
+- **On-Screen Focus**: Standalone verification script verifying 2,300+ entries: `[PASS] Chain Valid, 0 Tampering`.
