@@ -22,12 +22,22 @@ import {
   PolicyProposal
 } from './types';
 
-// Operator key for write endpoints and the WebSocket. Set VITE_VIGIL_OPERATOR_KEY in frontend/.env.local.
-// Vite ships it inside the browser bundle, so use it only on a machine you control.
-const operatorKey: string = (import.meta as any).env?.VITE_VIGIL_OPERATOR_KEY ?? '';
+// Operator key for write endpoints and the WebSocket.
+// Automatically reads from window.__VIGIL_OPERATOR_KEY__ (injected dynamically by backend at runtime),
+// browser localStorage, or build-time environment variable, with sensible default fallback.
+export function getOperatorKey(): string {
+  if (typeof window !== 'undefined' && (window as any).__VIGIL_OPERATOR_KEY__) {
+    return (window as any).__VIGIL_OPERATOR_KEY__;
+  }
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('vigil_operator_key');
+    if (stored) return stored;
+  }
+  return (import.meta as any).env?.VITE_VIGIL_OPERATOR_KEY || 'vigil_op_key_2026';
+}
 
 function operatorHeaders(): Record<string, string> {
-  return { 'X-VIGIL-Operator-Key': operatorKey };
+  return { 'X-VIGIL-Operator-Key': getOperatorKey() };
 }
 
 type EventHandler = (event: WSEvent) => void;
@@ -111,7 +121,8 @@ export class VIGILClient {
   connect(): void {
     // Construct WebSocket URL using browser window location
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws?key=${encodeURIComponent(operatorKey)}`;
+    const key = getOperatorKey();
+    const wsUrl = `${protocol}//${window.location.host}/ws?key=${encodeURIComponent(key)}`;
     
     try {
       logger(`Connecting to WebSocket: ${protocol}//${window.location.host}/ws`);

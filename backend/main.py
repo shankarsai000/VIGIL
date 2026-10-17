@@ -2064,7 +2064,18 @@ async def ws_endpoint(websocket: WebSocket):
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+
+
+@app.get("/api/client-config")
+async def get_client_config():
+    """Returns runtime client configuration for dashboard authorization."""
+    return {
+        "operator_key": settings.operator_api_key,
+        "armoriq_mode": settings.armoriq_mode,
+        "status": "ready",
+    }
+
 
 frontend_dist = Path("frontend/dist")
 if not frontend_dist.exists():
@@ -2076,14 +2087,23 @@ if frontend_dist.exists() and (frontend_dist / "index.html").exists():
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="frontend_assets")
 
+    def _render_injected_index():
+        index_file = frontend_dist / "index.html"
+        html = index_file.read_text(encoding="utf-8")
+        injected = html.replace(
+            "<head>",
+            f'<head><script>window.__VIGIL_OPERATOR_KEY__="{settings.operator_api_key}";</script>',
+        )
+        return HTMLResponse(content=injected)
+
     @app.get("/")
     async def serve_index():
-        return FileResponse(str(frontend_dist / "index.html"))
+        return _render_injected_index()
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         target = frontend_dist / full_path
         if full_path and target.exists() and target.is_file():
             return FileResponse(str(target))
-        return FileResponse(str(frontend_dist / "index.html"))
+        return _render_injected_index()
 

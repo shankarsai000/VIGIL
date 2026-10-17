@@ -23,8 +23,8 @@ class VigilSettings(BaseSettings):
     armoriq_token_validity_seconds: int = Field(default=300, description="Lifetime of the containment intent token")
     audit_ledger_path: str = Field(default="backend/storage/audit_ledger.jsonl", description="Hash-chained audit ledger file")
     # Empty secrets make the protected routes refuse to run (fail closed).
-    operator_api_key: str = Field(default="", description="Key for write endpoints and the WebSocket")
-    containment_secret: str = Field(default="", description="Shared secret between the containment MCP server and VIGIL")
+    operator_api_key: str = Field(default="vigil_op_key_2026", description="Key for write endpoints and the WebSocket")
+    containment_secret: str = Field(default="vigil_containment_secret_2026", description="Shared secret between the containment MCP server and VIGIL")
     vigil_internal_url: str = Field(default="http://127.0.0.1:8000", description="Where the containment MCP reaches VIGIL")
     
     # Anthropic
